@@ -201,11 +201,27 @@
   #bar button:hover { background: rgba(255,255,255,.13); color: #fff; }
   #bar button.danger:hover { background: #d0342c; color: #fff; }
 
+  /* Disconnected is not a state the agent is in — it is us not knowing. The
+     lamp must stop asserting, or a frozen green sits there telling the user
+     their agent is finished while it works. Every lamp goes dark, the housing
+     recedes, and the reason is spelled out. */
+  body.disconnected .lamp,
+  body.disconnected .lamp.on {
+    background: var(--off);
+    box-shadow: 0 2px 6px rgba(0,0,0,.8) inset, 0 0 0 3px rgba(255,255,255,.045);
+    animation: none;
+  }
+  body.disconnected .housing { opacity: .34; }
+  body.disconnected .pill { opacity: .3; }
+  body.disconnected #fuel { opacity: .2; }
+
   #disconnected {
     position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
-    font-size: 9.5px; color: #ff9f0a; opacity: 0; transition: opacity .2s;
+    font-size: 10px; font-weight: 600; letter-spacing: .01em;
+    color: #ff9f0a; opacity: 0; transition: opacity .2s;
+    white-space: nowrap;
   }
-  body.disconnected #disconnected { opacity: .9; }
+  body.disconnected #disconnected { opacity: 1; }
 </style>
 
 <div id="stage">
@@ -223,7 +239,7 @@
   </div>
 
   <div id="labels"></div>
-  <div id="disconnected">reconnecting&hellip;</div>
+  <div id="disconnected">no connection &mdash; state unknown</div>
 </div>
 
 <script>

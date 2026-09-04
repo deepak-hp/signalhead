@@ -365,6 +365,11 @@ Two behaviours worth knowing, both learned the hard way:
   ready when nothing is running. If it is still alive, its next event brings it
   straight back. `sig clear` does it immediately. A **red** session is never
   aged out, however long it waits.
+- **If the window loses its connection to the server, every lamp goes dark.**
+  Disconnected is not a state your agent is in — it is the light not knowing,
+  and a frozen green would say "finished, come and look" while the agent works.
+  The housing recedes and the window says *no connection — state unknown*. It
+  reconnects by itself as soon as the server is back.
 - **A `busy` session that goes quiet stays busy.** It is only dimmed. An
   earlier version promoted it to green on the theory that a working agent
   reports constantly — but an agent thinking hard with no tool calls reports

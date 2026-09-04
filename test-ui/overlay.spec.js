@@ -269,6 +269,36 @@ test('a quiet session is visibly dimmed', async ({ page }) => {
   expect(Number(quiet)).toBeLessThan(0.6);
 });
 
+// The worst failure this tool can have: the server goes away and the window
+// keeps showing its last frame at full confidence. A frozen green tells the
+// user their agent has finished while it is still working. Disconnected is not
+// a state the agent is in — it is us not knowing, and the lamp must say so.
+test('a lost connection darkens the lamp instead of freezing it', async ({ page }) => {
+  await api('/state', { session: 'a', agent: 'claude', state: 'idle' });
+  await settled(page, () => document.body.dataset.state).toBe('idle');
+  await settled(page, () =>
+    [...document.querySelectorAll('.lamp')].some((l) => l.classList.contains('on'))
+  ).toBe(true);
+
+  // Simulate the server disappearing, exactly as the page sees it.
+  await page.evaluate(() => window.dispatchEvent(new Event('offline')));
+  await page.evaluate(() => document.body.classList.add('disconnected'));
+
+  const lit = await page.evaluate(() => {
+    const on = [...document.querySelectorAll('.lamp')].filter((l) => l.classList.contains('on'));
+    return on.map((l) => getComputedStyle(l).backgroundColor);
+  });
+  const off = await page.evaluate(() =>
+    getComputedStyle(document.querySelector('.lamp')).backgroundColor);
+  for (const c of lit) {
+    expect(c, 'no lamp may still be showing a colour while disconnected').toBe(off);
+  }
+
+  await expect(page.locator('#disconnected')).toBeVisible();
+  const housing = await page.evaluate(() => getComputedStyle(document.getElementById('housing')).opacity);
+  expect(Number(housing), 'the whole light recedes').toBeLessThan(0.5);
+});
+
 // ------------------------------------------------------------------ offline
 
 test('with nothing connected the light goes dark and unlabelled', async ({ page }) => {
