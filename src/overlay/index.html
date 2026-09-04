@@ -1,0 +1,327 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>AI Traffic Light</title>
+<style>
+  :root {
+    --red: #ff3b30;
+    --amber: #ffcc00;
+    --green: #34c759;
+    --housing-1: #2a2d33;
+    --housing-2: #16181c;
+    --off: #0c0d10;
+
+    /* The window is sized to the stage. Fixing the width means the lamp sits at
+       the same screen pixel no matter how long an agent's status text gets —
+       a centred lamp in a shrink-wrapped window slides sideways on every update.
+       The padding is headroom for the bloom, which paints far outside the
+       housing and was being clipped into a visible square by the window edge. */
+    --stage-w: 300px;
+    --glow-pad: 76px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
+  html, body {
+    width: 100%; height: 100%;
+    background: transparent;
+    overflow: hidden;
+    font: 500 12px/1.3 -apple-system, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    color: #e9edf2;
+    cursor: default;
+  }
+  body.browser { background: #101216; display: grid; place-items: center; }
+
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: var(--stage-w);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    gap: 12px;
+    /* Symmetric on purpose. An asymmetric bottom was fine while pills happened to
+       fill the space below the lamp, but collapsed to a single lamp there is
+       nothing there and the bloom got sliced off into a visible edge. The extra
+       height when pills are present is transparent and click-through. */
+    padding: var(--glow-pad) 0;
+  }
+  body.browser #stage { position: static; }
+
+  /* ---------- the light ---------- */
+  .housing {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 12px;
+    border-radius: 20px;
+    background: linear-gradient(160deg, var(--housing-1), var(--housing-2));
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.10) inset,
+      0 0 0 1px rgba(0,0,0,.55),
+      0 18px 40px -12px rgba(0,0,0,.75);
+    -webkit-app-region: drag;
+    transition: transform .18s ease, opacity .18s ease;
+  }
+  .housing:active { transform: scale(.98); }
+
+  .lamp {
+    position: relative;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--off);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,.8) inset,
+      0 0 0 3px rgba(255,255,255,.045);
+    transition: background .22s ease, box-shadow .28s ease;
+  }
+  .lamp::after {
+    content: ""; position: absolute; left: 16%; top: 10%; width: 52%; height: 34%;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,0));
+    opacity: .35; pointer-events: none;
+  }
+
+  .lamp.on[data-color="red"] {
+    background: radial-gradient(circle at 38% 32%, #ff8a80, var(--red) 62%, #8e1710);
+    box-shadow: 0 0 0 3px rgba(255,59,48,.18), 0 0 22px 6px rgba(255,59,48,.55), 0 0 60px 12px rgba(255,59,48,.28);
+  }
+  .lamp.on[data-color="amber"] {
+    background: radial-gradient(circle at 38% 32%, #ffe89a, var(--amber) 62%, #8a6a00);
+    box-shadow: 0 0 0 3px rgba(255,204,0,.18), 0 0 22px 6px rgba(255,204,0,.55), 0 0 60px 12px rgba(255,204,0,.26);
+  }
+  .lamp.on[data-color="green"] {
+    background: radial-gradient(circle at 38% 32%, #a8f0be, var(--green) 62%, #126b2f);
+    box-shadow: 0 0 0 3px rgba(52,199,89,.18), 0 0 22px 6px rgba(52,199,89,.55), 0 0 60px 12px rgba(52,199,89,.26);
+  }
+
+  /* red demands attention, amber breathes, green just sits there */
+  body[data-state="waiting"] .lamp.on { animation: pulse 1.15s ease-in-out infinite; }
+  body[data-state="busy"]    .lamp.on { animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes pulse   { 0%,100% { filter: brightness(1);   } 50% { filter: brightness(1.45); } }
+  @keyframes breathe { 0%,100% { filter: brightness(.86); } 50% { filter: brightness(1.16); } }
+
+  body[data-state="offline"] .housing { opacity: .38; }
+
+  /* ---------- fuel gauge ----------
+     Absolutely positioned against the housing rather than placed in the flow, so
+     it can appear and disappear without nudging the lamp sideways. */
+  #fuel {
+    position: absolute; left: 100%; top: 8px; bottom: 8px; margin-left: 13px;
+    width: 9px; border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), 0 2px 8px -4px #000;
+    overflow: hidden;
+    opacity: 0; transform: scaleY(.9);
+    transition: opacity .3s ease, transform .3s ease;
+    -webkit-app-region: no-drag;
+  }
+  #fuel.on { opacity: 1; transform: scaleY(1); }
+  #fuel b {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    border-radius: 999px;
+    height: 0%;
+    background: var(--green);
+    box-shadow: 0 0 10px 0 currentColor;
+    transition: height .6s cubic-bezier(.4,0,.2,1), background .4s ease;
+  }
+  #fuel[data-level="mid"]  b { background: var(--amber); }
+  #fuel[data-level="low"]  b { background: var(--red); }
+  #fuel[data-level="low"]  b { animation: fuelWarn 1.6s ease-in-out infinite; }
+  @keyframes fuelWarn { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
+
+  body[data-theme="slim"] #fuel,
+  body.collapsed #fuel { display: none; }
+
+  /* ---------- slim theme ---------- */
+  body[data-theme="slim"] .housing { flex-direction: row; border-radius: 999px; padding: 9px 11px; gap: 8px; }
+  body[data-theme="slim"] .lamp { width: 22px; height: 22px; }
+
+  /* ---------- collapsed ---------- */
+  body.collapsed .lamp { display: none; }
+  body.collapsed .lamp.on { display: block; }
+  body.collapsed[data-state="offline"] .lamp[data-color="green"] { display: block; }
+  body.collapsed .housing { padding: 9px; border-radius: 999px; }
+
+  /* ---------- labels ---------- */
+  #labels { display: flex; flex-direction: column; gap: 4px; align-items: center; width: 100%; }
+  .pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 3px 9px 3px 6px;
+    border-radius: 999px;
+    background: rgba(16,18,22,.82);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 6px 16px -8px rgba(0,0,0,.9);
+    font-size: 10.5px; letter-spacing: .01em; white-space: nowrap;
+    max-width: calc(var(--stage-w) - 36px);
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+  }
+  .pill i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .pill i[data-color="red"]   { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+  .pill i[data-color="amber"] { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .pill i[data-color="green"] { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .pill b { font-weight: 600; flex: none; }
+  .pill span { opacity: .62; font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---------- hover toolbar ---------- */
+  #bar {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 2px; padding: 3px;
+    border-radius: 999px;
+    background: rgba(20,22,27,.94);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 8px 20px -8px #000;
+    opacity: 0; pointer-events: none; transition: opacity .15s ease;
+    -webkit-app-region: no-drag;
+    z-index: 5;
+  }
+  #stage:hover #bar { opacity: 1; pointer-events: auto; }
+  #bar button {
+    width: 20px; height: 20px; border: 0; border-radius: 50%;
+    background: transparent; color: #cfd6df; font-size: 11px; line-height: 1;
+    cursor: pointer; display: grid; place-items: center;
+  }
+  #bar button:hover { background: rgba(255,255,255,.13); color: #fff; }
+  #bar button.danger:hover { background: #d0342c; color: #fff; }
+
+  #disconnected {
+    position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+    font-size: 9.5px; color: #ff9f0a; opacity: 0; transition: opacity .2s;
+  }
+  body.disconnected #disconnected { opacity: .9; }
+</style>
+
+<div id="stage">
+  <div id="bar">
+    <button id="btn-theme" title="Switch shape">&#9704;</button>
+    <button id="btn-collapse" title="Collapse to one lamp">&#8211;</button>
+    <button id="btn-quit" class="danger" title="Quit overlay">&#10005;</button>
+  </div>
+
+  <div class="housing" id="housing">
+    <div class="lamp" data-color="red"></div>
+    <div class="lamp" data-color="amber"></div>
+    <div class="lamp" data-color="green"></div>
+    <div id="fuel" title=""><b></b></div>
+  </div>
+
+  <div id="labels"></div>
+  <div id="disconnected">reconnecting&hellip;</div>
+</div>
+
+<script>
+(() => {
+  const bridge = window.aitl || null;           // present only inside Electron
+  const inElectron = !!bridge;
+  if (!inElectron) document.body.classList.add('browser');
+
+  const COLOR = { waiting: 'red', busy: 'amber', idle: 'green', offline: null };
+  const VERB  = { waiting: 'needs you', busy: 'working', idle: 'ready' };
+
+  const lamps   = [...document.querySelectorAll('.lamp')];
+  const labels  = document.getElementById('labels');
+  const stage   = document.getElementById('stage');
+  const housing = document.getElementById('housing');
+  const bar     = document.getElementById('bar');
+  const fuel    = document.getElementById('fuel');
+  const fuelFill = fuel.querySelector('b');
+
+  let cfg = { showLabels: true, theme: 'classic' };
+  let collapsed = false;
+
+  const fit = () => {
+    if (!inElectron) return;
+    requestAnimationFrame(() => {
+      const r = stage.getBoundingClientRect();
+      // Width is fixed by CSS, so only the height is ever reported as changing.
+      // That keeps the window anchored and the lamp perfectly still.
+      bridge.contentSize({ w: Math.ceil(r.width), h: Math.ceil(r.height) });
+
+      const h = housing.getBoundingClientRect();
+      const b = bar.getBoundingClientRect();
+      const pad = 4;
+      bridge.hotRect({
+        x: Math.min(h.left, b.left) - pad,
+        y: Math.min(h.top, b.top) - pad,
+        w: Math.max(h.right, b.right) - Math.min(h.left, b.left) + pad * 2,
+        h: Math.max(h.bottom, b.bottom) - Math.min(h.top, b.top) + pad * 2,
+      });
+    });
+  };
+
+  function renderFuel(f) {
+    if (!f || typeof f.remaining !== 'number') {
+      fuel.classList.remove('on');
+      fuelFill.style.height = '0%';
+      return;
+    }
+    const pct = Math.max(0, Math.min(100, f.remaining));
+    fuel.classList.add('on');
+    fuel.dataset.level = pct <= 15 ? 'low' : pct <= 40 ? 'mid' : 'ok';
+    fuelFill.style.height = pct + '%';
+    fuel.title = `${f.label || 'remaining'}: ${Math.round(pct)}%` + (f.agent ? ` (${f.agent})` : '');
+  }
+
+  function render(snap) {
+    const color = COLOR[snap.overall];
+    document.body.dataset.state = snap.overall;
+    for (const l of lamps) l.classList.toggle('on', l.dataset.color === color);
+
+    renderFuel(snap.fuel);
+
+    const list = (snap.sessions || []).filter((s) => s.state !== 'offline');
+    const showPills = cfg.showLabels && !collapsed &&
+      (list.length > 1 || (list.length === 1 && list[0].detail));
+    labels.innerHTML = '';
+    if (showPills) {
+      for (const s of list.slice(0, 4)) {
+        const el = document.createElement('div');
+        el.className = 'pill';
+        el.innerHTML = '<i></i><b></b><span></span>';
+        el.querySelector('i').dataset.color = COLOR[s.state];
+        el.querySelector('b').textContent = s.agent;
+        el.querySelector('span').textContent = s.detail || VERB[s.state] || '';
+        el.title = (s.cwd ? s.cwd + ' — ' : '') + (s.detail || VERB[s.state] || '');
+        labels.appendChild(el);
+      }
+    }
+    fit();
+  }
+
+  // ---------- live state ----------
+  let es;
+  function connect() {
+    const base = inElectron ? bridge.serverUrl : location.origin;
+    es = new EventSource(base + '/events');
+    es.onopen = () => document.body.classList.remove('disconnected');
+    es.onmessage = (e) => { try { render(JSON.parse(e.data)); } catch (_) {} };
+    es.onerror = () => {
+      document.body.classList.add('disconnected');
+      es.close();
+      setTimeout(connect, 1500);
+    };
+  }
+  connect();
+
+  // ---------- controls ----------
+  document.getElementById('btn-quit').onclick = () => (inElectron ? bridge.quit() : window.close());
+  document.getElementById('btn-collapse').onclick = () => {
+    collapsed = !collapsed;
+    document.body.classList.toggle('collapsed', collapsed);
+    document.getElementById('btn-collapse').textContent = collapsed ? '+' : '–';
+    labels.innerHTML = '';
+    fit();
+  };
+  document.getElementById('btn-theme').onclick = () => {
+    cfg.theme = cfg.theme === 'classic' ? 'slim' : 'classic';
+    document.body.dataset.theme = cfg.theme;
+    if (inElectron) bridge.saveConfig({ theme: cfg.theme });
+    fit();
+  };
+
+  if (inElectron) {
+    bridge.getConfig().then((c) => {
+      cfg = { ...cfg, ...c };
+      document.body.dataset.theme = cfg.theme || 'classic';
+      fit();
+    });
+    window.addEventListener('transitionend', fit);
+  } else {
+    document.body.dataset.theme = 'classic';
+  }
+
+  render({ overall: 'offline', sessions: [] });
+})();
+</script>

@@ -1,0 +1,3 @@
+node_modules/
+*.aitl-backup-*
+.DS_Store

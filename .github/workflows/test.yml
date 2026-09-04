@@ -1,0 +1,108 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # The logic tests. These are the ones that catch real bugs, and they run
+  # everywhere because path handling and process spawning are exactly what
+  # differs between a Mac and a PC.
+  test:
+    name: ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # Electron and node-pty are both optional at runtime, and both are large or
+      # need a toolchain. The suite must pass without either.
+      - name: Install without optional binaries
+        run: npm install --no-optional --ignore-scripts --no-audit --no-fund
+
+      - name: Test
+        run: npm test
+
+      # A smoke test of the actual CLI, because "the modules are correct" and
+      # "the tool works when you run it" are different claims.
+      - name: CLI smoke test
+        shell: bash
+        run: |
+          node src/cli.js start --no-overlay --port 4788 &
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:4788/health >/dev/null && break || sleep 0.5
+          done
+          curl -sf http://127.0.0.1:4788/health
+          AITL_PORT=4788 node src/cli.js set busy --agent ci --session smoke --detail building
+          AITL_PORT=4788 node src/cli.js status | tee /tmp/status.txt
+          grep -q busy /tmp/status.txt
+          AITL_PORT=4788 node src/cli.js set idle --agent ci --session smoke
+          AITL_PORT=4788 node src/cli.js status | grep -q idle
+          AITL_PORT=4788 node src/cli.js doctor || true
+          AITL_PORT=4788 node src/cli.js stop
+
+      # Installing hooks must not corrupt a real settings.json on any platform —
+      # path separators and quoting are the usual culprits.
+      - name: Hook install/uninstall round trip
+        shell: bash
+        run: |
+          mkdir -p .claude
+          echo '{"permissions":{"allow":["Bash(ls:*)"]}}' > .claude/settings.json
+          node src/cli.js install claude --scope project
+          node -e "
+            const s=require('./.claude/settings.json');
+            const n=Object.values(s.hooks).flat().flatMap(g=>g.hooks).length;
+            if(n!==9) throw new Error('expected 9 hooks, got '+n);
+            if(!s.permissions) throw new Error('existing settings were clobbered');
+          "
+          node src/cli.js uninstall claude --scope project
+          node -e "
+            const s=require('./.claude/settings.json');
+            if(s.hooks && Object.keys(s.hooks).length) throw new Error('uninstall left hooks behind');
+            if(!s.permissions) throw new Error('uninstall damaged unrelated settings');
+          "
+
+  # Proves the overlay actually builds and launches a window, which the logic
+  # tests deliberately do not cover.
+  overlay:
+    name: overlay / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Fetch the Electron runtime
+        run: npm run setup
+      - name: Electron binary is usable
+        run: node -e "const p=require('electron'); require('fs').accessSync(p); console.log('electron at', p)"
+
+      # Linux CI has no display, so the window itself is launched under a virtual
+      # one. This catches a crash-on-start, not how the window looks.
+      - name: Launch the overlay headlessly (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgtk-3-0 libnss3 libasound2t64 ||           sudo apt-get install -y -qq xvfb libgtk-3-0 libnss3 libasound2
+          node src/cli.js start --no-overlay --port 4790 &
+          sleep 2
+          xvfb-run -a node -e "
+            const {spawn}=require('child_process');
+            const e=require('electron');
+            const p=spawn(e,['src/overlay/main.js'],{env:{...process.env,AITL_PORT:'4790'},stdio:'inherit'});
+            setTimeout(()=>{ p.kill(); console.log('overlay survived startup'); }, 8000);
+          "

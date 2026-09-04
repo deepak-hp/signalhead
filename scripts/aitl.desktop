@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AI Traffic Light
+Comment=Shows what your AI coding agents are doing
+Exec=aitl start
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-GNOME-Autostart-enabled=true

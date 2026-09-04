@@ -1,0 +1,53 @@
+{
+  "name": "ai-traffic-light",
+  "version": "1.0.0",
+  "description": "An always-on-top traffic light overlay that shows what your AI coding agents are doing: red = waiting for you, yellow = working, green = done.",
+  "bin": {
+    "aitl": "src/cli.js"
+  },
+  "main": "src/overlay/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/cli.js start",
+    "overlay": "electron src/overlay/main.js",
+    "server": "node src/cli.js server",
+    "setup": "node scripts/setup.js",
+    "status": "node src/cli.js status",
+    "test": "node --test",
+    "doctor": "node src/cli.js doctor",
+    "watch:codex": "node src/cli.js watch codex",
+    "test:linux": "bash scripts/run-linux-tests.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "optionalDependencies": {
+    "electron": "^38.0.0",
+    "node-pty": "^1.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deepak-hp/ai-traffic-light.git"
+  },
+  "homepage": "https://github.com/deepak-hp/ai-traffic-light",
+  "keywords": [
+    "claude-code",
+    "codex",
+    "ai-agent",
+    "overlay",
+    "traffic-light",
+    "status",
+    "always-on-top",
+    "gemini-cli",
+    "aider",
+    "developer-tools",
+    "cli"
+  ],
+  "files": [
+    "src",
+    "scripts",
+    "README.md",
+    "LICENSE"
+  ]
+}
