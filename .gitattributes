@@ -1,0 +1,6 @@
+# Normalise to LF in the repo. Without this, a clone on Linux gets the shell
+# scripts with CRLF endings and they fail with "bad interpreter: ...^M".
+* text=auto eol=lf
+
+# Windows Script Host files stay CRLF.
+*.vbs text eol=crlf
