@@ -44,6 +44,9 @@ npx signalhead start
 default, and that script is what downloads the Electron binary. Skip it and
 `sig start --browser` still gives you the same light in a browser tab.
 
+Upgrading replaces `node_modules`, so the runtime is lost each time — `sig
+start` notices and refetches it (the archive is cached, so it is quick).
+
 From a clone:
 
 ```bash

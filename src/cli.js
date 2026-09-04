@@ -156,11 +156,24 @@ async function cmdStart(flags) {
     return hold();
   }
 
-  const child = spawnOverlay(port);
+  let child = spawnOverlay(port);
+
+  // Upgrading with `npm i -g` replaces node_modules, and npm 11 blocks
+  // Electron's postinstall — so the runtime disappears on every upgrade and the
+  // window silently stops appearing. Fetch it rather than leaving the user to
+  // work out that `sig setup` exists. The archive is cached after the first
+  // time, so this is usually a quick unpack.
   if (!child) {
-    console.log(`${c.yel('!')} Electron is not installed, so there is no floating window.`);
-    console.log(`  ${c.dim('npm install')}  inside ${ROOT}`);
-    console.log(`  ${c.dim('or use')} sig start --browser  ${c.dim('for a browser overlay')}`);
+    console.log(`${c.yel('!')} the window runtime is missing — fetching it now`);
+    const setup = require('child_process').spawnSync(
+      process.execPath, [path.join(ROOT, 'scripts', 'setup.js')], { stdio: 'inherit' });
+    if (setup.status === 0) child = spawnOverlay(port);
+  }
+
+  if (!child) {
+    console.log(`${c.yel('!')} could not start the floating window.`);
+    console.log(`  ${c.dim('run')} sig setup  ${c.dim('to install it, or')} sig start --browser`);
+    console.log(c.dim(`  the server is still running on http://127.0.0.1:${port}`));
     return hold();
   }
 
