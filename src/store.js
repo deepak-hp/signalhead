@@ -28,12 +28,14 @@ class Store extends EventEmitter {
     staleBusyMs = 60_000,
     idleTtlMs = 30 * 60 * 1000,
     quietAfterMs = 90_000,
+    unusedTtlMs = 2 * 60 * 1000,
   } = {}) {
     super();
     this.ttlMs = ttlMs;
     this.staleBusyMs = staleBusyMs;
     this.idleTtlMs = idleTtlMs;
     this.quietAfterMs = quietAfterMs;
+    this.unusedTtlMs = unusedTtlMs;
     this.sessions = new Map();
     this._sweeper = setInterval(() => this.sweep(), 5_000);
     if (this._sweeper.unref) this._sweeper.unref();
@@ -64,6 +66,10 @@ class Store extends EventEmitter {
         detail,
         cwd: cwd || prev?.cwd || '',
         fuel: fuel !== undefined ? normaliseFuel(fuel) : (prev?.fuel ?? null),
+        // A session that has only ever announced itself is not the same as one
+        // that has done work. Agents sometimes open a session and abandon it
+        // without ever reporting an end, and those must not linger as if real.
+        everBusy: prev?.everBusy || next === 'busy' || next === 'waiting',
         since: prev && prev.state === next ? prev.since : now,
         updatedAt: now,
       });
@@ -79,6 +85,16 @@ class Store extends EventEmitter {
 
     for (const [id, s] of this.sessions) {
       if (s.updatedAt < cutoff) { this.sessions.delete(id); changed = true; continue; }
+
+      // Announced itself and then did nothing at all. An agent that opens a
+      // session and abandons it never sends SessionEnd, so without this the
+      // phantom sits on screen claiming to be a ready agent until the much
+      // longer idle timeout. A real session that has done work is untouched.
+      if (!s.everBusy && s.state === 'idle' && now - s.updatedAt > this.unusedTtlMs) {
+        this.sessions.delete(id);
+        changed = true;
+        continue;
+      }
 
       // An agent that crashed or was force-quit never sends SessionEnd, so its
       // pill would sit there for hours claiming to be "ready" when nothing is

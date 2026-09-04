@@ -20,13 +20,14 @@ function readBody(req, limit = 64 * 1024) {
   });
 }
 
-function start({ port = config.port(), ttlMs, staleBusyMs, idleTtlMs, quietAfterMs } = {}) {
+function start({ port = config.port(), ttlMs, staleBusyMs, idleTtlMs, quietAfterMs, unusedTtlMs } = {}) {
   const cfg = config.load();
   const store = new Store({
     ttlMs: ttlMs ?? cfg.sessionTtlMs,
     staleBusyMs: staleBusyMs ?? (Number(process.env.SIGNALHEAD_STALE_BUSY_MS) || cfg.staleBusyMs),
     idleTtlMs: idleTtlMs ?? cfg.idleTtlMs,
     quietAfterMs: quietAfterMs ?? cfg.quietAfterMs,
+    unusedTtlMs: unusedTtlMs ?? cfg.unusedTtlMs,
   });
   const clients = new Set();
 

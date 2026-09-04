@@ -24,6 +24,9 @@ const DEFAULTS = {
   idleTtlMs: 30 * 60 * 1000,
   // A session that has not reported in this long is shown as quiet, not fresh.
   quietAfterMs: 90 * 1000,
+  // A session that announced itself and then never did anything is forgotten
+  // this quickly, rather than waiting out the full idle timeout.
+  unusedTtlMs: 2 * 60 * 1000,
 };
 
 function ensureDir() {

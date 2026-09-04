@@ -346,6 +346,13 @@ Two behaviours worth knowing, both learned the hard way:
 - **Unknown events are ignored, never guessed.** An earlier version defaulted
   anything unrecognised to `busy`, so one unexpected payload pinned the lamp
   yellow with no way to see why.
+- **A session that announces itself and then does nothing is forgotten after
+  `unusedTtlMs` (default 2 min).** Agents sometimes open a session and abandon
+  it without ever reporting an end — closing a Claude Code window has been seen
+  to end one session and start another in the same second, and that new one
+  never says anything again. Without this it would sit there as a "ready" agent
+  that never existed. A session that has actually done work is kept for the
+  full idle window instead.
 - **A session that has not reported in `quietAfterMs` (default 90s) is dimmed.**
   Not every agent reports reliably — one may fire its session-start hook and
   then nothing at all, in which case the light would keep showing whatever it

@@ -114,6 +114,35 @@ test('a session that has gone silent is marked quiet, not fresh', async () => {
   assert.equal(by.silent.state, 'idle', 'the state itself is unchanged — only our confidence in it');
 });
 
+// Observed in the wild: closing a Claude Code window ended one session and
+// opened another in the same second, and that new one fired SessionStart and
+// nothing else — ever. No prompt, no tool call, no end. It sat on screen as a
+// "ready" agent that had never existed in any meaningful sense.
+test('a session that announces itself and does nothing is forgotten quickly', async () => {
+  const s = new Store({ unusedTtlMs: 100, idleTtlMs: 600_000, staleBusyMs: 600_000 });
+
+  s.set({ session: 'phantom', agent: 'claude', state: 'idle' });      // SessionStart only
+  s.set({ session: 'real', agent: 'claude', state: 'busy' });          // did some work
+  s.set({ session: 'real', agent: 'claude', state: 'idle' });          // then finished
+
+  await new Promise((r) => setTimeout(r, 220));
+  s.sweep();
+
+  const ids = s.snapshot().sessions.map((x) => x.session);
+  assert.ok(!ids.includes('phantom'), 'the session that never did anything is gone');
+  assert.ok(ids.includes('real'), 'one that worked and finished is kept for the full idle window');
+});
+
+test('a session counts as used once it goes busy or waiting', () => {
+  const s = new Store();
+  s.set({ session: 'a', agent: 'claude', state: 'idle' });
+  assert.ok(!s.snapshot().sessions[0].everBusy, 'idle alone does not count as use');
+
+  s.set({ session: 'a', agent: 'claude', state: 'busy' });
+  s.set({ session: 'a', agent: 'claude', state: 'idle' });
+  assert.ok(s.snapshot().sessions[0].everBusy, 'and it stays used after finishing');
+});
+
 test('sessions expire after the TTL', async () => {
   const s = new Store({ ttlMs: 80, staleBusyMs: 10_000 });
   s.set({ session: 'a', state: 'idle' });
