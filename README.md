@@ -26,6 +26,14 @@ sig setup      # fetches the Electron runtime for the floating window
 sig start
 ```
 
+Straight from the repo works too, and needs no npm account:
+
+```bash
+npm install -g github:deepak-hp/signalhead
+sig setup
+sig start
+```
+
 Or without installing anything globally:
 
 ```bash
