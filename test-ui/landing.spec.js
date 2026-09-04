@@ -6,9 +6,36 @@
 // nothing but a real browser catches it.
 
 const { test, expect } = require('@playwright/test');
+const http = require('http');
+const fs = require('fs');
 const path = require('path');
 
-const PAGE = 'file://' + path.resolve(__dirname, '..', 'docs', 'index.html').replace(/\\/g, '/');
+// Served over HTTP, not opened as a file. GitHub Pages serves this page over
+// HTTPS, and file:// differs where it matters: localStorage can be refused
+// there, which is exactly what the theme-persistence test depends on. A test
+// that loads the page differently from how it ships is testing something else.
+const DOCS = path.resolve(__dirname, '..', 'docs');
+const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml' };
+
+let server;
+let PAGE;
+
+test.beforeAll(async () => {
+  server = http.createServer((req, res) => {
+    const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    const file = path.join(DOCS, rel === '/' ? 'index.html' : rel.replace(/^\/+/, ''));
+    if (!file.startsWith(DOCS) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      res.writeHead(404).end('not found');
+      return;
+    }
+    res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream' });
+    fs.createReadStream(file).pipe(res);
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  PAGE = `http://127.0.0.1:${server.address().port}/`;
+});
+
+test.afterAll(() => server && server.close());
 
 // Relative luminance, so contrast can be asserted rather than eyeballed.
 const rgb = (s) => s.match(/\d+/g).slice(0, 3).map(Number);
@@ -90,6 +117,20 @@ test('the page is readable at rest, with the demo already running', async ({ pag
     [...document.querySelectorAll('.lamp')].filter((l) => l.classList.contains('on')).length
   );
   expect(lit).toBe(1);
+});
+
+test('the served page loads clean — no console errors, no broken local requests', async ({ page }) => {
+  const errors = [];
+  const failed = [];
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('requestfailed', (r) => {
+    // Only our own assets matter; a blocked font CDN is the network's business.
+    if (r.url().startsWith(PAGE)) failed.push(r.url() + ' ' + (r.failure()?.errorText || ''));
+  });
+
+  await page.goto(PAGE, { waitUntil: 'load' });
+  expect(errors, 'console errors').toEqual([]);
+  expect(failed, 'failed same-origin requests').toEqual([]);
 });
 
 test('the status pill carries a dot, the agent and its status', async ({ page }) => {

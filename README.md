@@ -199,9 +199,17 @@ window manager for transparency — without one, use `sig start --browser`.
 ## Is it working on *this* machine?
 
 ```bash
-npm test        # 42 tests: state logic, adapters, hooks, installer, server, fuel
-sig doctor     # this machine: binaries, config paths, live server
+npm test         # 44 logic tests: state machine, adapters, hooks, installer, fuel
+npm run test:ui  # 23 rendered tests: the real overlay, in a real browser
+sig doctor       # this machine: binaries, config paths, live server
 ```
+
+The UI tests boot the actual server and drive `http://127.0.0.1:<port>/` — the
+same page the overlay window loads, over real HTTP with a real SSE stream and
+state pushed through the real API. They measure what a person sees: where the
+lamp sits, whether its bloom is clipped, which lamp is lit, what the label says,
+what colour the gauge is. Every one of them corresponds to something that was
+once visibly wrong.
 
 `npm test` proves the logic. `doctor` proves the wiring — the right Node binary,
 hook paths that exist on *this* disk, a reachable server. Those are what differ
