@@ -130,6 +130,27 @@ test('the overlay page is served for browser mode', async () => {
   assert.match(html, /AI Traffic Light/);
 });
 
+// The CLI is a scripting surface: people wire it into their own tooling. A
+// rejected value that prints nothing and exits 0 is the worst possible
+// behaviour there — the script "works" and the lamp never moves.
+test('the CLI reports a rejected state instead of failing silently', async () => {
+  const CLI = path.join(__dirname, '..', 'src', 'cli.js');
+  const run = (args) =>
+    new Promise((resolve) => {
+      execFile(process.execPath, [CLI, ...args],
+        { env: { ...process.env, SIGNALHEAD_PORT: String(PORT) } },
+        (err, stdout, stderr) => resolve({ code: err ? err.code : 0, stdout, stderr }));
+    });
+
+  const bad = await run(['set', 'chartreuse', '--agent', 'x']);
+  assert.equal(bad.code, 1, 'a rejected state must exit non-zero');
+  assert.match(bad.stderr, /unknown state/, 'and must say why');
+
+  const good = await run(['set', 'busy', '--agent', 'x']);
+  assert.equal(good.code, 0);
+  assert.equal(good.stderr.trim(), '');
+});
+
 // -------------------------------------------------------------- installer
 
 // Hook commands carry an absolute path into this install. When that install is

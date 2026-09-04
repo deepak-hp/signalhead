@@ -89,7 +89,19 @@ ${c.b('OPTIONS')}
 async function cmdServer(flags, { detached = false } = {}) {
   const { start } = require('./server');
   const port = Number(flags.port) || config.port();
-  const { port: bound } = await start({ port });
+
+  let bound;
+  try {
+    ({ port: bound } = await start({ port }));
+  } catch (err) {
+    if (err && err.code === 'EADDRINUSE') {
+      console.error(`${c.red('●')} port ${port} is already in use.`);
+      console.error(c.dim('  signalhead may already be running:  sig status'));
+      console.error(c.dim(`  or pick another port:               sig start --port ${port + 1}`));
+      process.exit(1);
+    }
+    throw err;
+  }
   if (!detached) console.log(`${c.grn('●')} server listening on http://127.0.0.1:${bound}`);
   return bound;
 }
@@ -198,7 +210,14 @@ async function cmdSet(positional, flags) {
     detail: flags.detail || '',
     cwd: flags.cwd || '',
   });
-  if (!res) console.error(c.dim('(no server listening — start it with `sig start`)'));
+  if (!res) {
+    console.error(c.dim('(no server listening — start it with `sig start`)'));
+    return;
+  }
+  if (res.error) {
+    console.error(`${c.red('●')} ${res.error}`);
+    process.exitCode = 1;
+  }
 }
 
 async function cmdFuel(positional, flags) {
@@ -216,7 +235,14 @@ async function cmdFuel(positional, flags) {
     fuel: { remaining, label: flags.label || 'remaining' },
     ...(flags.state ? { state: flags.state } : {}),
   });
-  if (!res) console.error(c.dim('(no server listening — start it with `sig start`)'));
+  if (!res) {
+    console.error(c.dim('(no server listening — start it with `sig start`)'));
+    return;
+  }
+  if (res.error) {
+    console.error(`${c.red('●')} ${res.error}`);
+    process.exitCode = 1;
+  }
 }
 
 async function cmdClear(flags) {
