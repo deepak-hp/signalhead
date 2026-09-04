@@ -175,6 +175,10 @@
   .pill i[data-color="amber"] { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
   .pill i[data-color="green"] { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .pill b { font-weight: 600; flex: none; }
+  /* A session that has gone silent should not look as confident as one that
+     just reported. Same information, visibly less certain. */
+  .pill.quiet { opacity: .45; }
+  .pill.quiet i { box-shadow: none; }
   .pill span { opacity: .62; font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
 
   /* ---------- hover toolbar ---------- */
@@ -296,10 +300,12 @@
         const el = document.createElement('div');
         el.className = 'pill';
         el.innerHTML = '<i></i><b></b><span></span>';
+        el.classList.toggle('quiet', !!s.quiet);
         el.querySelector('i').dataset.color = COLOR[s.state];
         el.querySelector('b').textContent = s.agent;
         el.querySelector('span').textContent = s.detail || VERB[s.state] || '';
-        el.title = (s.cwd ? s.cwd + ' — ' : '') + (s.detail || VERB[s.state] || '');
+        const quietFor = s.quiet ? ` — silent for ${Math.round(s.quietFor / 60000)}m` : '';
+        el.title = (s.cwd ? s.cwd + ' — ' : '') + (s.detail || VERB[s.state] || '') + quietFor;
         labels.appendChild(el);
       }
     }

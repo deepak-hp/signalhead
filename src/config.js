@@ -22,6 +22,8 @@ const DEFAULTS = {
   staleBusyMs: 60 * 1000,
   // A green session nobody has touched in this long is treated as gone.
   idleTtlMs: 30 * 60 * 1000,
+  // A session that has not reported in this long is shown as quiet, not fresh.
+  quietAfterMs: 90 * 1000,
 };
 
 function ensureDir() {

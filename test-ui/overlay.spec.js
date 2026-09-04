@@ -250,6 +250,25 @@ test('a fuel update does not disturb the lamp', async ({ page }) => {
   expect(await page.evaluate(() => document.body.dataset.state)).toBe('waiting');
 });
 
+// A session that reported once and went silent must not look as confident as
+// one that just spoke. This is what made a non-reporting second window read as
+// a healthy "ready".
+test('a quiet session is visibly dimmed', async ({ page }) => {
+  await api('/state', { session: 'a', agent: 'claude', state: 'idle' });
+  await settled(page, () => document.querySelectorAll('.pill').length).toBe(1);
+  const fresh = await page.evaluate(() => getComputedStyle(document.querySelector('.pill')).opacity);
+  expect(Number(fresh)).toBeGreaterThan(0.9);
+
+  // Render a quiet session directly: the server's own threshold is 90s, far too
+  // long to wait for, and this asserts the rendering rule rather than the clock.
+  await page.evaluate(() => {
+    const pill = document.querySelector('.pill');
+    pill.classList.add('quiet');
+  });
+  const quiet = await page.evaluate(() => getComputedStyle(document.querySelector('.pill')).opacity);
+  expect(Number(quiet)).toBeLessThan(0.6);
+});
+
 // ------------------------------------------------------------------ offline
 
 test('with nothing connected the light goes dark and unlabelled', async ({ page }) => {

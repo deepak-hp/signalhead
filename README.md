@@ -202,8 +202,8 @@ window manager for transparency — without one, use `sig start --browser`.
 ## Is it working on *this* machine?
 
 ```bash
-npm test         # 44 logic tests: state machine, adapters, hooks, installer, fuel
-npm run test:ui  # 23 rendered tests: the real overlay, in a real browser
+npm test         # 45 logic tests: state machine, adapters, hooks, installer, fuel
+npm run test:ui  # 24 rendered tests: the real overlay, in a real browser
 sig doctor       # this machine: binaries, config paths, live server
 ```
 
@@ -307,6 +307,12 @@ Two behaviours worth knowing, both learned the hard way:
 - **Unknown events are ignored, never guessed.** An earlier version defaulted
   anything unrecognised to `busy`, so one unexpected payload pinned the lamp
   yellow with no way to see why.
+- **A session that has not reported in `quietAfterMs` (default 90s) is dimmed.**
+  Not every agent reports reliably — one may fire its session-start hook and
+  then nothing at all, in which case the light would keep showing whatever it
+  last heard, at full confidence. A dimmed label means "this is the last thing
+  it told me, a while ago", which is a different claim from "this is what it is
+  doing now". `sig status` says `(silent 4m)`.
 - **A green session nobody touches for `idleTtlMs` (default 30 min) is
   forgotten.** An agent that crashes or is force-quit never sends its "session
   ended" event, so its pill would otherwise sit there for hours claiming to be

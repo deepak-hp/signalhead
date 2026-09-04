@@ -95,6 +95,25 @@ test('a waiting session is never forgotten, however long it waits', async () => 
   assert.equal(s.snapshot().overall, 'waiting', 'red must survive any amount of waiting');
 });
 
+// A window that reported once and then went silent looked identical to one that
+// had just said "ready" — the light presented a stale claim with full
+// confidence, and there was no way to tell the difference.
+test('a session that has gone silent is marked quiet, not fresh', async () => {
+  const s = new Store({ quietAfterMs: 100, idleTtlMs: 600_000, staleBusyMs: 600_000 });
+  s.set({ session: 'silent', agent: 'claude', state: 'idle' });
+  s.set({ session: 'chatty', agent: 'claude', state: 'idle' });
+
+  const keepAlive = setInterval(() => s.set({ session: 'chatty', agent: 'claude', state: 'idle' }), 30);
+  await new Promise((r) => setTimeout(r, 220));
+  clearInterval(keepAlive);
+
+  const by = Object.fromEntries(s.snapshot().sessions.map((x) => [x.session, x]));
+  assert.equal(by.silent.quiet, true, 'the silent one is flagged');
+  assert.ok(by.silent.quietFor >= 100, 'and says how long it has been silent');
+  assert.equal(by.chatty.quiet, undefined, 'one still reporting is not flagged');
+  assert.equal(by.silent.state, 'idle', 'the state itself is unchanged — only our confidence in it');
+});
+
 test('sessions expire after the TTL', async () => {
   const s = new Store({ ttlMs: 80, staleBusyMs: 10_000 });
   s.set({ session: 'a', state: 'idle' });

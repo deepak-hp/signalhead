@@ -217,7 +217,9 @@ async function cmdStatus() {
   if (!snap.sessions.length) return console.log(c.dim('  no active agents'));
   for (const s of snap.sessions) {
     const age = Math.round((Date.now() - s.since) / 1000);
-    const note = s.stale ? 'no finish signal — assumed done' : s.detail || '';
+    const note = s.stale ? 'no finish signal — assumed done'
+      : s.quiet ? `${s.detail || ''} (silent ${Math.round(s.quietFor / 60000)}m)`.trim()
+      : s.detail || '';
     console.log(`  ${DOT[s.state]()} ${s.agent.padEnd(10)} ${String(s.state).padEnd(8)} ${c.dim(`${age}s  ${note}`)}`);
   }
 }

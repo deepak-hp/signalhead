@@ -23,11 +23,17 @@ function normaliseFuel(fuel) {
 }
 
 class Store extends EventEmitter {
-  constructor({ ttlMs = 6 * 60 * 60 * 1000, staleBusyMs = 60_000, idleTtlMs = 30 * 60 * 1000 } = {}) {
+  constructor({
+    ttlMs = 6 * 60 * 60 * 1000,
+    staleBusyMs = 60_000,
+    idleTtlMs = 30 * 60 * 1000,
+    quietAfterMs = 90_000,
+  } = {}) {
     super();
     this.ttlMs = ttlMs;
     this.staleBusyMs = staleBusyMs;
     this.idleTtlMs = idleTtlMs;
+    this.quietAfterMs = quietAfterMs;
     this.sessions = new Map();
     this._sweeper = setInterval(() => this.sweep(), 5_000);
     if (this._sweeper.unref) this._sweeper.unref();
@@ -102,7 +108,14 @@ class Store extends EventEmitter {
   // Overall fuel: the emptiest tank wins, for the same reason — one gauge should
   // show the thing that is going to run out first.
   snapshot() {
-    const sessions = [...this.sessions.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+    const now = Date.now();
+    // An agent that reported once and then went quiet is not the same as one
+    // that just told us it finished, but they look identical on a lamp. Mark
+    // the difference so the display can show it, rather than presenting a
+    // stale claim with full confidence.
+    const sessions = [...this.sessions.values()]
+      .map((s) => (now - s.updatedAt > this.quietAfterMs ? { ...s, quiet: true, quietFor: now - s.updatedAt } : s))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
     let overall = 'offline';
     for (const s of sessions) if (PRIORITY[s.state] > PRIORITY[overall]) overall = s.state;
 
@@ -112,7 +125,7 @@ class Store extends EventEmitter {
       if (!fuel || s.fuel.remaining < fuel.remaining) fuel = { ...s.fuel, agent: s.agent };
     }
 
-    return { overall, fuel, sessions, at: Date.now() };
+    return { overall, fuel, sessions, at: now };
   }
 }
 
