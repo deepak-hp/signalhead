@@ -3,199 +3,398 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Signalhead — a traffic light for your AI coding agents</title>
-<meta name="description" content="Red when Claude Code, Codex or Gemini needs you, yellow while it works, green when it's done. A floating always-on-top overlay for macOS, Windows and Linux." />
+<title>Signalhead</title>
+<meta name="description" content="A traffic light for your AI coding agents. Red when Claude Code, Codex or Gemini needs you, yellow while it works, green when it's done. macOS, Windows and Linux." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='9' y='2' width='14' height='28' rx='6' fill='%2322262c'/><circle cx='16' cy='9' r='4' fill='%23ff3b30'/><circle cx='16' cy='16' r='4' fill='%23ffcc00'/><circle cx='16' cy='23' r='4' fill='%2334c759'/></svg>" />
 
-<meta property="og:title" content="Signalhead — a traffic light for your AI coding agents" />
-<meta property="og:description" content="Red when your agent needs you, yellow while it works, green when it's done. macOS, Windows and Linux." />
+<meta property="og:title" content="Signalhead" />
+<meta property="og:description" content="A traffic light for your AI coding agents. Red when it needs you, yellow while it works, green when it's done." />
 <meta property="og:type" content="website" />
+<meta property="og:url" content="https://deepak-hp.github.io/signalhead" />
 <meta name="twitter:card" content="summary_large_image" />
 
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" />
+
 <style>
+  /* ---------------------------------------------------------------------
+     Tokens lifted from utilzilla.com so this page belongs to the same
+     family: indigo primary, the same neutral ramps, the same 0.75rem
+     radius, Instrument Sans over Inter.
+
+     Light is the base. Dark is redefined twice — once for the system
+     preference, once for an explicit choice — so all three viewer states
+     (system, forced light, forced dark) resolve correctly.
+     --------------------------------------------------------------------- */
   :root {
-    --red: #ff3b30; --amber: #ffcc00; --green: #34c759;
-    --housing-1: #2a2d33; --housing-2: #16181c; --off: #0c0d10;
-    --bg: #0b0d10; --fg: #e9edf2; --muted: #99a2ae; --line: rgba(255,255,255,.09);
+    --background: 220 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-border: 220 13% 91%;
+    --border: 220 13% 88%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 215 16% 47%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+
+    /* The lamp's own colours. Semantic, deliberately not the accent —
+       they mean stop / working / go, and never change with the theme. */
+    --red: #ff3b30;
+    --amber: #ffcc00;
+    --green: #34c759;
+    --housing-1: #2a2d33;
+    --housing-2: #16181c;
+    --lamp-off: #0c0d10;
+
+    --radius: .75rem;
+    --shadow-sm: 0 2px 4px 0 #0000000f, 0 1px 2px -1px #0000000a;
+    --shadow-lg: 0 20px 25px -5px #00000014, 0 8px 10px -6px #0000000a;
+    --ring: 239 84% 67%;
+
+    --display: "Instrument Sans", "Inter", system-ui, sans-serif;
+    --sans: "Inter", system-ui, -apple-system, sans-serif;
+    --mono: "Menlo", "Monaco", ui-monospace, "Courier New", monospace;
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --background: 240 18% 6%;
+      --foreground: 210 40% 97%;
+      --card: 240 15% 9%;
+      --card-border: 240 12% 20%;
+      --border: 240 12% 20%;
+      --muted: 240 12% 16%;
+      --muted-foreground: 215 20% 60%;
+      --popover: 240 15% 10%;
+      --shadow-sm: 0 2px 4px 0 #00000052;
+      --shadow-lg: 0 20px 25px -5px #00000066, 0 8px 10px -6px #00000040;
+    }
+  }
+  :root[data-theme="dark"] {
+    --background: 240 18% 6%;
+    --foreground: 210 40% 97%;
+    --card: 240 15% 9%;
+    --card-border: 240 12% 20%;
+    --border: 240 12% 20%;
+    --muted: 240 12% 16%;
+    --muted-foreground: 215 20% 60%;
+    --popover: 240 15% 10%;
+    --shadow-sm: 0 2px 4px 0 #00000052;
+    --shadow-lg: 0 20px 25px -5px #00000066, 0 8px 10px -6px #00000040;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
   body {
-    background:
-      radial-gradient(900px 500px at 50% -10%, rgba(52,199,89,.07), transparent 70%),
-      var(--bg);
-    color: var(--fg);
-    font: 400 16px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font: 400 16px/1.65 var(--sans);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 72px 24px 96px; }
+  ::selection { background: hsl(var(--primary) / .22); }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; border-radius: 4px; }
 
-  header { text-align: center; }
-  h1 { font-size: clamp(34px, 7vw, 52px); letter-spacing: -.025em; font-weight: 700; }
-  .tag { color: var(--muted); font-size: clamp(16px, 2.6vw, 19px); margin-top: 14px; }
-  .tag b { color: var(--fg); font-weight: 600; }
+  .page { max-width: 720px; margin: 0 auto; padding: 20px 24px 88px; }
 
-  /* ---- the light: same CSS as the real overlay ---- */
-  .stage { display: flex; justify-content: center; padding: 56px 0 44px; }
+  /* ---------- brand row ---------- */
+  .top { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 44px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+  .brand svg { display: block; }
+  .toggle {
+    width: 34px; height: 34px; display: grid; place-items: center;
+    border: 1px solid hsl(var(--border)); border-radius: 9px;
+    background: hsl(var(--card)); color: hsl(var(--muted-foreground));
+    cursor: pointer; transition: color .15s, border-color .15s;
+  }
+  .toggle:hover { color: hsl(var(--foreground)); border-color: hsl(var(--muted-foreground) / .5); }
+  .toggle .moon { display: none; }
+  :root[data-theme="dark"] .toggle .sun { display: none; }
+  :root[data-theme="dark"] .toggle .moon { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .toggle .sun { display: none; }
+    :root:not([data-theme="light"]) .toggle .moon { display: block; }
+  }
+
+  /* ---------- hero ---------- */
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12.5px; font-weight: 600; letter-spacing: .02em;
+    color: hsl(var(--primary));
+    background: hsl(var(--primary) / .1);
+    border: 1px solid hsl(var(--primary) / .22);
+    padding: 5px 11px; border-radius: 999px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(38px, 7.5vw, 58px); line-height: 1.05;
+    letter-spacing: -.033em; margin-top: 20px; text-wrap: balance;
+  }
+  .lede {
+    margin-top: 16px; font-size: clamp(16.5px, 2.4vw, 19px);
+    color: hsl(var(--muted-foreground)); max-width: 34em; text-wrap: pretty;
+  }
+  .lede b { color: hsl(var(--foreground)); font-weight: 600; }
+
+  /* ---------- the light: the overlay's own CSS ---------- */
+  .demo {
+    margin-top: 48px; padding: 52px 24px 26px;
+    background: hsl(var(--card)); border: 1px solid hsl(var(--card-border));
+    border-radius: 18px; box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; align-items: center; gap: 30px;
+  }
+  .rig { position: relative; }
   .housing {
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
-    padding: 14px; border-radius: 22px;
+    display: flex; flex-direction: column; align-items: center; gap: 11px;
+    padding: 13px; border-radius: 21px;
     background: linear-gradient(160deg, var(--housing-1), var(--housing-2));
-    box-shadow: 0 1px 0 rgba(255,255,255,.10) inset, 0 0 0 1px rgba(0,0,0,.55),
-                0 24px 50px -14px rgba(0,0,0,.8);
+    box-shadow: 0 1px 0 rgba(255,255,255,.10) inset, 0 0 0 1px rgba(0,0,0,.5),
+                0 22px 46px -14px rgba(0,0,0,.55);
   }
   .lamp {
-    position: relative; width: 58px; height: 58px; border-radius: 50%;
-    background: var(--off);
+    position: relative; width: 54px; height: 54px; border-radius: 50%;
+    background: var(--lamp-off);
     box-shadow: 0 2px 6px rgba(0,0,0,.8) inset, 0 0 0 3px rgba(255,255,255,.045);
-    transition: background .3s ease, box-shadow .4s ease;
+    transition: background .3s ease, box-shadow .45s ease;
   }
   .lamp::after {
     content: ""; position: absolute; left: 16%; top: 10%; width: 52%; height: 34%;
     border-radius: 50%; opacity: .35;
-    background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,0));
+    background: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0));
   }
   .lamp.on[data-c="red"] {
     background: radial-gradient(circle at 38% 32%, #ff8a80, var(--red) 62%, #8e1710);
-    box-shadow: 0 0 0 3px rgba(255,59,48,.18), 0 0 26px 7px rgba(255,59,48,.55), 0 0 70px 14px rgba(255,59,48,.28);
+    box-shadow: 0 0 0 3px rgb(255 59 48 / .18), 0 0 24px 6px rgb(255 59 48 / .55), 0 0 64px 13px rgb(255 59 48 / .26);
   }
   .lamp.on[data-c="amber"] {
     background: radial-gradient(circle at 38% 32%, #ffe89a, var(--amber) 62%, #8a6a00);
-    box-shadow: 0 0 0 3px rgba(255,204,0,.18), 0 0 26px 7px rgba(255,204,0,.55), 0 0 70px 14px rgba(255,204,0,.26);
+    box-shadow: 0 0 0 3px rgb(255 204 0 / .18), 0 0 24px 6px rgb(255 204 0 / .55), 0 0 64px 13px rgb(255 204 0 / .24);
   }
   .lamp.on[data-c="green"] {
     background: radial-gradient(circle at 38% 32%, #a8f0be, var(--green) 62%, #126b2f);
-    box-shadow: 0 0 0 3px rgba(52,199,89,.18), 0 0 26px 7px rgba(52,199,89,.55), 0 0 70px 14px rgba(52,199,89,.26);
+    box-shadow: 0 0 0 3px rgb(52 199 89 / .18), 0 0 24px 6px rgb(52 199 89 / .55), 0 0 64px 13px rgb(52 199 89 / .24);
   }
-  .caption {
-    text-align: center; min-height: 26px; color: var(--muted);
-    font-size: 14.5px; transition: opacity .25s;
+  [data-state="waiting"] .lamp.on { animation: pulse 1.15s ease-in-out infinite; }
+  [data-state="busy"] .lamp.on { animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes pulse   { 0%,100% { filter: brightness(1) }   50% { filter: brightness(1.45) } }
+  @keyframes breathe { 0%,100% { filter: brightness(.86) } 50% { filter: brightness(1.16) } }
+
+  /* the fuel gauge, sitting out of flow exactly as it does in the app */
+  /* Track takes its colour from the tokens, not a translucent white — on the
+     white card in light mode that left the fill floating with no track. */
+  .fuel {
+    position: absolute; left: 100%; top: 9px; bottom: 9px; margin-left: 13px;
+    width: 9px; border-radius: 999px; overflow: hidden;
+    background: hsl(var(--muted));
+    box-shadow: inset 0 0 0 1px hsl(var(--border));
   }
-  .caption b { color: var(--fg); font-weight: 600; }
+  .fuel i { position: absolute; inset: auto 0 0 0; height: 61%; border-radius: 999px; background: var(--green); }
 
-  /* ---- meanings ---- */
-  .means { display: grid; gap: 10px; margin: 8px auto 0; max-width: 460px; }
-  .means div { display: flex; align-items: baseline; gap: 12px; font-size: 15px; }
-  .means i { width: 9px; height: 9px; border-radius: 50%; flex: none; transform: translateY(-1px); }
-  .means .r { background: var(--red);   box-shadow: 0 0 8px var(--red); }
-  .means .a { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
-  .means .g { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  .means span { color: var(--muted); }
-  .means b { font-weight: 600; }
+  /* ---------- the status pill: same object as the overlay's ---------- */
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px 6px 10px; border-radius: 999px;
+    background: hsl(var(--popover)); border: 1px solid hsl(var(--card-border));
+    box-shadow: var(--shadow-sm);
+    font-size: 13.5px; white-space: nowrap;
+    transition: opacity .2s ease;
+  }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .pill .who { font-weight: 600; letter-spacing: -.005em; }
+  .pill .what { color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+  .pill[data-c="red"] .dot   { background: var(--red);   box-shadow: 0 0 7px var(--red); }
+  .pill[data-c="amber"] .dot { background: var(--amber); box-shadow: 0 0 7px var(--amber); }
+  .pill[data-c="green"] .dot { background: var(--green); box-shadow: 0 0 7px var(--green); }
 
-  /* ---- install ---- */
-  .install { margin: 44px auto 0; max-width: 520px; }
+  /* ---------- meanings ---------- */
+  .legend { display: grid; gap: 2px; margin-top: 40px; }
+  .legend div { display: grid; grid-template-columns: 14px 1fr; gap: 12px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid hsl(var(--border)); }
+  .legend div:last-child { border-bottom: 0; }
+  .legend i { width: 9px; height: 9px; border-radius: 50%; transform: translateY(-1px); }
+  .legend .r { background: var(--red);   box-shadow: 0 0 8px var(--red); }
+  .legend .a { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .legend .g { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .legend b { font-weight: 600; }
+  .legend span { color: hsl(var(--muted-foreground)); font-size: 15px; }
+
+  /* ---------- install ---------- */
+  h2 { font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .02em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin: 56px 0 16px; }
   pre {
-    background: #111418; border: 1px solid var(--line); border-radius: 12px;
-    padding: 16px 18px; overflow-x: auto;
-    font: 13.5px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    color: #dfe6ee;
+    background: hsl(var(--card)); border: 1px solid hsl(var(--card-border));
+    border-radius: var(--radius); padding: 18px 20px; overflow-x: auto;
+    font: 13.5px/1.85 var(--mono); box-shadow: var(--shadow-sm);
   }
-  pre .c { color: #6f7b88; }
-  .cta { display: flex; gap: 12px; justify-content: center; margin-top: 28px; flex-wrap: wrap; }
+  pre .c { color: hsl(var(--muted-foreground)); }
+  .cta { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
   .btn {
-    display: inline-block; padding: 11px 20px; border-radius: 10px;
-    text-decoration: none; font-size: 14.5px; font-weight: 600;
-    border: 1px solid var(--line); color: var(--fg); background: #14181d;
-    transition: background .15s, border-color .15s;
+    display: inline-flex; align-items: center; padding: 10px 18px;
+    border-radius: 10px; text-decoration: none; font-size: 14.5px; font-weight: 600;
+    border: 1px solid hsl(var(--border)); color: hsl(var(--foreground));
+    background: hsl(var(--card)); transition: border-color .15s, background .15s;
   }
-  .btn:hover { background: #1b2027; border-color: rgba(255,255,255,.2); }
-  .btn.primary { background: var(--green); color: #06240f; border-color: transparent; }
-  .btn.primary:hover { background: #46d76b; }
+  .btn:hover { border-color: hsl(var(--muted-foreground) / .5); }
+  .btn.primary { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: transparent; }
+  .btn.primary:hover { background: hsl(var(--primary) / .88); }
 
-  /* ---- agents ---- */
-  h2 { font-size: 20px; letter-spacing: -.01em; margin: 56px 0 14px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
-  th { color: var(--muted); font-weight: 500; font-size: 13px; }
-  td code { font: 13px ui-monospace, Menlo, Consolas, monospace; color: #cfe4ff; }
-  p.note { color: var(--muted); font-size: 14.5px; margin-top: 14px; }
-  a { color: #7fc4ff; }
+  /* ---------- agents ---------- */
+  .agents { display: grid; gap: 0; }
+  .agents .row { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; padding: 14px 0; border-bottom: 1px solid hsl(var(--border)); align-items: baseline; }
+  .agents .row:last-child { border-bottom: 0; }
+  .agents .name { font-weight: 600; font-size: 15px; }
+  .agents .how { color: hsl(var(--muted-foreground)); font-size: 13.5px; grid-column: 1 / -1; }
+  .agents .how code { font-family: var(--mono); font-size: 12.5px; color: hsl(var(--primary)); }
+  .agents .lamps { font-size: 12.5px; color: hsl(var(--muted-foreground)); }
 
-  footer {
-    margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line);
-    color: var(--muted); font-size: 13.5px; text-align: center;
+  p.note { color: hsl(var(--muted-foreground)); font-size: 15px; margin-top: 18px; max-width: 36em; }
+  a { color: hsl(var(--primary)); text-underline-offset: 3px; }
+
+  footer { margin-top: 64px; padding-top: 22px; border-top: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); font-size: 13.5px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
   }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="page">
+
+  <div class="top">
+    <div class="brand">
+      <svg width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="9" y="2" width="14" height="28" rx="6" fill="#22262c" />
+        <circle cx="16" cy="9" r="4" fill="#ff3b30" />
+        <circle cx="16" cy="16" r="4" fill="#ffcc00" />
+        <circle cx="16" cy="23" r="4" fill="#34c759" />
+      </svg>
+      signalhead
+    </div>
+    <button class="toggle" id="theme" aria-label="Switch between light and dark">
+      <svg class="sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
 
   <header>
-    <h1>Signalhead</h1>
-    <p class="tag">A traffic light for your <b>AI coding agents</b>.<br />
-      Stop alt-tabbing to find out whether it's still thinking or has been waiting on you for five minutes.</p>
+    <span class="eyebrow">Free &amp; open source</span>
+    <h1>A traffic light for your AI coding agents.</h1>
+    <p class="lede">Stop alt-tabbing to find out whether it's still thinking or has been
+      <b>waiting on you for five minutes</b>. Glance at the corner of the screen instead.</p>
   </header>
 
-  <div class="stage">
-    <div class="housing">
-      <div class="lamp" data-c="red"></div>
-      <div class="lamp" data-c="amber"></div>
-      <div class="lamp" data-c="green"></div>
+  <div class="demo" id="demo" data-state="busy">
+    <div class="rig">
+      <div class="housing">
+        <div class="lamp" data-c="red"></div>
+        <div class="lamp" data-c="amber"></div>
+        <div class="lamp" data-c="green"></div>
+      </div>
+      <div class="fuel" title="plan quota: 61% remaining"><i></i></div>
+    </div>
+    <div class="pill" id="pill" data-c="amber">
+      <span class="dot"></span>
+      <span class="who">claude</span>
+      <span class="what" id="what">thinking</span>
     </div>
   </div>
-  <p class="caption" id="caption"></p>
 
-  <div class="means">
-    <div><i class="r"></i><span><b>Red</b> — it stopped and needs you. Permission, a question, a choice.</span></div>
+  <div class="legend">
+    <div><i class="r"></i><span><b>Red</b> — it stopped and needs you. A permission prompt, a question, a choice.</span></div>
     <div><i class="a"></i><span><b>Yellow</b> — it's working.</span></div>
     <div><i class="g"></i><span><b>Green</b> — it finished and is ready for the next task.</span></div>
   </div>
 
-  <div class="install">
-<pre><span class="c"># install (or: npm i -g github:deepak-hp/signalhead)</span>
+  <h2>Install</h2>
+<pre><span class="c"># macOS, Windows, Linux</span>
 npm install -g signalhead
 sig setup
 
 <span class="c"># run it, then wire in your agent</span>
 sig start
 sig install claude</pre>
-  </div>
 
   <div class="cta">
-    <a class="btn primary" href="https://github.com/deepak-hp/signalhead">Get it on GitHub</a>
-    <a class="btn" href="https://github.com/deepak-hp/signalhead#connecting-your-agents">How it connects</a>
+    <a class="btn primary" href="https://github.com/deepak-hp/signalhead">View on GitHub</a>
+    <a class="btn" href="https://www.npmjs.com/package/signalhead">npm</a>
   </div>
 
   <h2>Works with any agent</h2>
-  <table>
-    <tr><th>Agent</th><th>Lamps</th><th>How</th></tr>
-    <tr><td>Claude Code</td><td>all three</td><td>its own lifecycle hooks</td></tr>
-    <tr><td>Codex</td><td>all three</td><td>its own session log</td></tr>
-    <tr><td>Gemini, Aider, Cursor, opencode</td><td>all three</td><td><code>sig wrap -- gemini</code></td></tr>
-    <tr><td>Anything else</td><td>whatever you report</td><td><code>sig set busy</code> or one HTTP call</td></tr>
-  </table>
-  <p class="note">Runs on macOS, Windows and Linux. Drag it anywhere; clicks pass straight
-    through to whatever is underneath. Several agents at once each get a label, and the
-    lamp shows whichever most wants your attention. A slim fuel gauge beside the light
-    tracks how much plan quota or context you have left.</p>
+  <div class="agents">
+    <div class="row">
+      <span class="name">Claude Code</span><span class="lamps">all three lamps</span>
+      <span class="how">Nine lifecycle hooks — <code>sig install claude</code></span>
+    </div>
+    <div class="row">
+      <span class="name">Codex</span><span class="lamps">all three lamps</span>
+      <span class="how">Reads its own session log — <code>sig watch codex</code>, and drives the fuel gauge from its real quota</span>
+    </div>
+    <div class="row">
+      <span class="name">Gemini, Aider, Cursor, opencode</span><span class="lamps">all three lamps</span>
+      <span class="how">A watched pseudo-terminal — <code>sig wrap -- gemini</code></span>
+    </div>
+    <div class="row">
+      <span class="name">Anything else</span><span class="lamps">whatever you report</span>
+      <span class="how">One line of shell — <code>sig set waiting --agent deploy</code></span>
+    </div>
+  </div>
+
+  <p class="note">Drag it anywhere; clicks pass straight through to whatever is underneath.
+    Run several agents at once and each gets a label, while the lamp shows whichever most
+    wants your attention. The slim gauge beside the light tracks how much plan quota or
+    context you have left.</p>
 
   <p class="note">Nothing leaves your machine — the whole thing is a local server on
     loopback holding the current state of each session, and nothing else.</p>
 
   <footer>
-    MIT licensed · <a href="https://github.com/deepak-hp/signalhead">github.com/deepak-hp/signalhead</a>
+    <span>MIT licensed</span>
+    <span><a href="https://github.com/deepak-hp/signalhead">github.com/deepak-hp/signalhead</a></span>
   </footer>
 </div>
 
 <script>
-  // The light cycles through a real turn: working, blocked on a question, done.
+  // ---- theme: system by default, explicit choice remembered ----
+  const root = document.documentElement;
+  try {
+    const saved = localStorage.getItem('sh-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch (_) {}
+  document.getElementById('theme').addEventListener('click', () => {
+    const dark = root.dataset.theme
+      ? root.dataset.theme === 'dark'
+      : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('sh-theme', root.dataset.theme); } catch (_) {}
+  });
+
+  // ---- the lamp runs a real turn, with the statuses the tool actually reports ----
+  const demo = document.getElementById('demo');
+  const pill = document.getElementById('pill');
+  const what = document.getElementById('what');
   const lamps = [...document.querySelectorAll('.lamp')];
-  const caption = document.getElementById('caption');
-  const script = [
-    ['amber', 'claude <b>is working</b>', 2600],
-    ['amber', 'claude <b>running tests</b>', 2200],
-    ['red',   'claude <b>needs your permission</b>', 3800],
-    ['amber', 'claude <b>is working</b>', 1800],
-    ['green', 'claude <b>is ready</b>', 3000],
+
+  const turn = [
+    ['busy',    'amber', 'thinking',                 2400],
+    ['busy',    'amber', 'running Bash',             2200],
+    ['busy',    'amber', 'editing src/server.js',    2200],
+    ['waiting', 'red',   'needs your permission',    4200],
+    ['busy',    'amber', 'running Bash',             1900],
+    ['idle',    'green', 'ready',                    3200],
   ];
+
   let i = 0;
   function step() {
-    const [colour, text, hold] = script[i % script.length];
+    const [state, colour, text] = turn[i % turn.length];
+    const hold = turn[i % turn.length][3];
+    demo.dataset.state = state;
     lamps.forEach((l) => l.classList.toggle('on', l.dataset.c === colour));
-    caption.style.opacity = 0;
-    setTimeout(() => { caption.innerHTML = text; caption.style.opacity = 1; }, 180);
+    pill.style.opacity = '0';
+    setTimeout(() => {
+      pill.dataset.c = colour;
+      what.textContent = text;
+      pill.style.opacity = '1';
+    }, 160);
     i++;
     setTimeout(step, hold);
   }
