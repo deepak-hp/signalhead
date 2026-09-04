@@ -7,10 +7,17 @@ name: release
 #   npm version patch    # or minor / major — bumps, commits and tags
 #   git push --follow-tags
 #
-# Requires a granular npm access token in the repo secrets as NPM_TOKEN
-# (npmjs.com -> Access Tokens -> Generate -> Granular, scoped to this package,
-# read and write). Automation tokens bypass 2FA by design; that is what they
-# are for.
+# Authentication is npm Trusted Publishing (OIDC): no token is stored anywhere.
+# GitHub mints a short-lived identity token for this exact repository and this
+# exact workflow file, and npm verifies it. A leaked long-lived token can
+# publish from anywhere; this cannot leak, because there is nothing to leak.
+#
+# One-time setup on npmjs.com -> the signalhead package -> Settings ->
+# Trusted Publisher:
+#   Organization or user : deepak-hp
+#   Repository           : signalhead
+#   Workflow filename    : release.yml
+# Leave the environment blank unless you add a GitHub environment gate.
 
 on:
   push:
@@ -19,7 +26,7 @@ on:
 
 permissions:
   contents: write      # to create the GitHub release
-  id-token: write      # to attach npm provenance
+  id-token: write      # mandatory: mints the OIDC token npm authenticates against
 
 jobs:
   release:
@@ -29,8 +36,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '22.14'      # trusted publishing needs >= 22.14.0
           registry-url: https://registry.npmjs.org
+
+      # The npm that ships with Node 22 is 10.x. Trusted publishing landed in
+      # 11.5.1, and without this the publish step falls back to looking for a
+      # token that does not exist.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install
         run: npm install --no-audit --no-fund
@@ -64,10 +77,10 @@ jobs:
       - name: Rendered UI tests
         run: npx playwright test
 
+      # No NODE_AUTH_TOKEN: OIDC handles authentication. Provenance is attached
+      # automatically when publishing a public package this way.
       - name: Publish to npm
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
 
       - name: Create the GitHub release
         env:

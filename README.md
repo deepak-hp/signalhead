@@ -285,11 +285,19 @@ npm version patch          # or minor / major — bumps, commits and tags
 git push --follow-tags
 ```
 
-One-time setup: a granular npm access token (npmjs.com → Access Tokens →
-Generate → Granular, scoped to this package, read and write) stored as the
-`NPM_TOKEN` repo secret. Automation tokens bypass 2FA by design, which is the
-whole point — publishing by hand needs an interactive terminal for the browser
-flow, so it can only happen from one machine, by one person.
+One-time setup, on npmjs.com → the `signalhead` package → Settings → Trusted
+Publisher:
+
+| Field | Value |
+|---|---|
+| Organization or user | `deepak-hp` |
+| Repository | `signalhead` |
+| Workflow filename | `release.yml` |
+
+No token is stored anywhere. GitHub mints a short-lived OIDC identity for this
+repository and this workflow file, and npm verifies it — so there is no secret
+to leak, rotate or expire, and a stolen credential cannot publish from
+somewhere else. Provenance is attached automatically.
 
 The workflow refuses to publish if the tag disagrees with `package.json`, if
 that version is already on the registry, or if either suite fails. See
