@@ -211,7 +211,7 @@ window manager for transparency — without one, use `sig start --browser`.
 ## Is it working on *this* machine?
 
 ```bash
-npm test         # 45 logic tests: state machine, adapters, hooks, installer, fuel
+npm test         # 50 logic tests: state machine, adapters, hooks, installer, fuel
 npm run test:ui  # 24 rendered tests: the real overlay, in a real browser
 sig doctor       # this machine: binaries, config paths, live server
 ```
@@ -279,7 +279,7 @@ Nothing leaves your machine. The server listens on loopback only and holds
 nothing but the current state of each session.
 
 Settings live in `~/.signalhead/config.json` — port, window position,
-theme, `staleBusyMs`, and `clickThrough` if you would rather the window swallow
+theme, the timeouts above, and `clickThrough` if you would rather the window swallow
 clicks.
 
 ---
@@ -365,12 +365,13 @@ Two behaviours worth knowing, both learned the hard way:
   ready when nothing is running. If it is still alive, its next event brings it
   straight back. `sig clear` does it immediately. A **red** session is never
   aged out, however long it waits.
-- **A `busy` session that goes quiet for `staleBusyMs` (default 60s) falls back
-  to green.** A working agent emits events constantly, so a long silence almost
-  always means it finished without saying so — and some agents have no reliable
-  "turn ended" event at all. If it really is still working, its next event
-  corrects the lamp immediately. `sig status` marks these
-  `no finish signal — assumed done`.
+- **A `busy` session that goes quiet stays busy.** It is only dimmed. An
+  earlier version promoted it to green on the theory that a working agent
+  reports constantly — but an agent thinking hard with no tool calls reports
+  nothing for minutes, and the lamp went green while it was still working,
+  which is the one thing this tool exists not to say. Silence is not evidence
+  of completion. A busy session silent past the idle window is dropped rather
+  than turned green.
 
 ---
 
