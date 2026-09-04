@@ -146,7 +146,10 @@ curl -s "http://127.0.0.1:4747/set/busy?agent=my-bot&session=$$&detail=thinking"
 
 A slim vertical bar beside the light showing how much you have left before
 something runs out — plan quota, context window, credits, whatever you choose.
-It fills from the bottom and turns amber below 40% and red below 15%.
+It fills from the bottom, so full reaches the top. The fill is a neutral
+slate — deliberately not the lamp's red, amber or green, which already mean
+*agent state* on this widget. Colour on the gauge only ever means "act soon":
+amber below 25%, red below 10%.
 
 Codex reports real numbers, so it is automatic:
 
