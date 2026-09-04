@@ -17,7 +17,9 @@
     "test": "node --test",
     "doctor": "node src/cli.js doctor",
     "watch:codex": "node src/cli.js watch codex",
-    "test:linux": "bash scripts/run-linux-tests.sh"
+    "test:linux": "bash scripts/run-linux-tests.sh",
+    "test:ui": "playwright test",
+    "test:all": "npm test && npm run test:ui"
   },
   "engines": {
     "node": ">=20"
@@ -53,5 +55,8 @@
   ],
   "bugs": {
     "url": "https://github.com/deepak-hp/signalhead/issues"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }

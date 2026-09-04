@@ -106,3 +106,25 @@ jobs:
             const p=spawn(e,['src/overlay/main.js'],{env:{...process.env,SIGNALHEAD_PORT:'4790'},stdio:'inherit'});
             setTimeout(()=>{ p.kill(); console.log('overlay survived startup'); }, 8000);
           "
+
+  # Renders the real overlay and the landing page in a browser and measures them.
+  # The logic suite cannot see a clipped glow, a lamp that drifts, or text that
+  # fails contrast — this can.
+  ui:
+    name: rendered UI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-optional --no-audit --no-fund
+      - run: npm install -D @playwright/test --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-failures
+          path: test-results/
+          retention-days: 7

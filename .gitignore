@@ -1,3 +1,8 @@
 node_modules/
 *.aitl-backup-*
 .DS_Store
+
+# playwright
+test-results/
+playwright-report/
+blob-report/

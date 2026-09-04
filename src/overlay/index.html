@@ -9,6 +9,7 @@
     --housing-1: #2a2d33;
     --housing-2: #16181c;
     --off: #0c0d10;
+    --fuel-fill: #96a1b2;
 
     /* The window is sized to the stage. Fixing the width means the lamp sits at
        the same screen pixel no matter how long an agent's status text gets —
@@ -110,17 +111,29 @@
     -webkit-app-region: no-drag;
   }
   #fuel.on { opacity: 1; transform: scaleY(1); }
+  /* Deliberately NOT the lamp's colours. Red, amber and green already mean
+     "agent state" on this widget; reusing them for fuel gives the same three
+     colours two meanings an inch apart. The level itself is the information,
+     so the fill stays neutral and colour appears only as a warning. */
   #fuel b {
     position: absolute; left: 0; right: 0; bottom: 0;
     border-radius: 999px;
     height: 0%;
-    background: var(--green);
-    box-shadow: 0 0 10px 0 currentColor;
-    transition: height .6s cubic-bezier(.4,0,.2,1), background .4s ease;
+    /* Muted slate: an instrument reading, recessed so it never competes with
+       the lamp for attention. Bright white was legible but too loud. */
+    background: var(--fuel-fill);
+    box-shadow: 0 0 8px 0 rgba(150, 161, 178, .28);
+    transition: height .6s cubic-bezier(.4,0,.2,1), background .4s ease, box-shadow .4s ease;
   }
-  #fuel[data-level="mid"]  b { background: var(--amber); }
-  #fuel[data-level="low"]  b { background: var(--red); }
-  #fuel[data-level="low"]  b { animation: fuelWarn 1.6s ease-in-out infinite; }
+  #fuel[data-level="mid"] b {
+    background: var(--amber);
+    box-shadow: 0 0 10px 0 rgba(255, 204, 0, .5);
+  }
+  #fuel[data-level="low"] b {
+    background: var(--red);
+    box-shadow: 0 0 10px 0 rgba(255, 59, 48, .55);
+    animation: fuelWarn 1.6s ease-in-out infinite;
+  }
   @keyframes fuelWarn { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
 
   body[data-theme="slim"] #fuel,
@@ -249,7 +262,8 @@
     }
     const pct = Math.max(0, Math.min(100, f.remaining));
     fuel.classList.add('on');
-    fuel.dataset.level = pct <= 15 ? 'low' : pct <= 40 ? 'mid' : 'ok';
+    // Narrow warning bands: colour should mean "act soon", not "you are at 60%".
+    fuel.dataset.level = pct <= 10 ? 'low' : pct <= 25 ? 'mid' : 'ok';
     fuelFill.style.height = pct + '%';
     fuel.title = `${f.label || 'remaining'}: ${Math.round(pct)}%` + (f.agent ? ` (${f.agent})` : '');
   }
@@ -262,8 +276,12 @@
     renderFuel(snap.fuel);
 
     const list = (snap.sessions || []).filter((s) => s.state !== 'offline');
-    const showPills = cfg.showLabels && !collapsed &&
-      (list.length > 1 || (list.length === 1 && list[0].detail));
+    // Every live session gets a label. An earlier rule also required a non-empty
+    // `detail`, which hid the label on exactly one state: idle clears detail, so
+    // the light went green and the agent's name vanished with it. The renderer
+    // falls back to "ready" / "working" / "needs you", so there is always
+    // something worth saying.
+    const showPills = cfg.showLabels && !collapsed && list.length > 0;
     labels.innerHTML = '';
     if (showPills) {
       for (const s of list.slice(0, 4)) {

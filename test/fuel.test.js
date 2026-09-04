@@ -146,6 +146,31 @@ test('glow headroom is symmetric, so the bloom is never clipped in any mode', ()
   assert.ok(glow >= 72, `glow headroom ${glow}px is smaller than the 72px bloom radius`);
 });
 
+// Guards a reported bug: the label vanished the moment the light went green,
+// because the visibility rule required a non-empty `detail` and idle clears it.
+test('a single session is labelled in every state, green included', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'overlay', 'index.html'), 'utf8');
+  const rule = html.match(/const showPills\s*=[^;]+;/)[0];
+  assert.doesNotMatch(rule, /\.detail/,
+    `pill visibility must not depend on detail, got: ${rule}`);
+  assert.match(html, /VERB\s*=\s*\{[^}]*idle:\s*'ready'/,
+    'idle needs a fallback label to show instead of the empty detail');
+});
+
+// The lamp's red/amber/green mean "agent state". If the gauge fill defaults to
+// one of them, the same three colours carry two meanings on one small widget.
+test('the fuel gauge does not borrow the lamp colours at normal levels', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'overlay', 'index.html'), 'utf8');
+  const fill = html.match(/#fuel b\s*\{[^}]*\}/)[0];
+  assert.doesNotMatch(fill, /var\(--(green|red|amber)\)/,
+    `the default fill must be neutral, got: ${fill}`);
+  // Colour is reserved for warnings, and those bands stay narrow.
+  const low = Number(html.match(/pct <= (\d+) \? 'low'/)[1]);
+  const mid = Number(html.match(/pct <= (\d+) \? 'mid'/)[1]);
+  assert.ok(low <= 15, `low band ${low}% should mean "act now"`);
+  assert.ok(mid <= 30 && mid > low, `mid band ${mid}% should be a narrow warning, not most of the range`);
+});
+
 test('the fuel gauge is positioned out of flow so it cannot move the lamp', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'overlay', 'index.html'), 'utf8');
   assert.match(html, /#fuel\s*\{[^}]*position:\s*absolute/, 'gauge is absolutely positioned');
