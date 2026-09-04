@@ -219,6 +219,28 @@ test('the gauge is neutral until it is genuinely low', async ({ page }) => {
   await expect.poll(fillColour, { timeout: 4000 }).toBe('rgb(255, 59, 48)');
 });
 
+// The overlay window is transparent and floats over an unknown desktop, so a
+// translucent track disappeared and the gauge read as a bar of arbitrary
+// length. The unfilled portion is half the information.
+test('the empty part of the gauge is visible over any background', async ({ page }) => {
+  await api('/state', { session: 'a', agent: 'claude', state: 'busy' });
+  await api('/state', { session: 'a', fuel: { remaining: 61 } });
+  await settled(page, () => document.getElementById('fuel').classList.contains('on')).toBe(true);
+
+  const track = await page.evaluate(() => getComputedStyle(document.getElementById('fuel')).backgroundColor);
+  const image = await page.evaluate(() => getComputedStyle(document.getElementById('fuel')).backgroundImage);
+
+  // Either an opaque colour or a gradient — never a translucent tint that the
+  // desktop shows straight through.
+  const alpha = track.startsWith('rgba') ? Number(track.split(',')[3]) : 1;
+  const opaque = image !== 'none' || alpha === 1;
+  expect(opaque, `track must not be see-through (bg: ${track}, image: ${image})`).toBe(true);
+
+  // And it must differ from the fill, or there is nothing to read the level against.
+  const fill = await page.evaluate(() => getComputedStyle(document.querySelector('#fuel b')).backgroundColor);
+  expect(fill).not.toBe(track);
+});
+
 test('a fuel update does not disturb the lamp', async ({ page }) => {
   await api('/state', { session: 'a', agent: 'claude', state: 'waiting', detail: 'needs you' });
   await settled(page, () => document.body.dataset.state).toBe('waiting');
