@@ -193,7 +193,9 @@
     background: hsl(var(--muted));
     box-shadow: inset 0 0 0 1px hsl(var(--border));
   }
-  .fuel i { position: absolute; inset: auto 0 0 0; height: 61%; border-radius: 999px; background: var(--green); }
+  /* Neutral, matching the app. Green here would collide with the lamp's own
+     meaning — and would advertise a product that no longer looks like this. */
+  .fuel i { position: absolute; inset: auto 0 0 0; height: 61%; border-radius: 999px; background: #96a1b2; }
 
   /* ---------- the status pill: same object as the overlay's ---------- */
   .pill {

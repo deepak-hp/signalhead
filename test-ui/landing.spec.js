@@ -133,6 +133,16 @@ test('the served page loads clean — no console errors, no broken local request
   expect(failed, 'failed same-origin requests').toEqual([]);
 });
 
+// The page is a shop window for the product; if it shows a different widget
+// from the one people install, it is lying about what they will get.
+test('the gauge on the page matches the app: neutral, not a lamp colour', async ({ page }) => {
+  await page.goto(PAGE);
+  const fill = await page.evaluate(() => getComputedStyle(document.querySelector('.fuel i')).backgroundColor);
+  expect(fill).not.toBe('rgb(52, 199, 89)');   // green lamp
+  expect(fill).not.toBe('rgb(255, 204, 0)');   // amber lamp
+  expect(fill).not.toBe('rgb(255, 59, 48)');   // red lamp
+});
+
 test('the status pill carries a dot, the agent and its status', async ({ page }) => {
   await page.goto(PAGE);
   await expect(page.locator('.pill .who')).toHaveText('claude');
