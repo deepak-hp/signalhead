@@ -42,26 +42,37 @@ test('rejects an unknown state instead of guessing', () => {
   assert.throws(() => s.set({ session: 'a', state: 'purple' }), /unknown state/);
 });
 
-// The bug this guards against: an agent with no reliable "finished" event leaves
-// the lamp yellow forever, which is worse than no lamp at all.
-test('a busy session gone quiet falls back to idle; a reporting one does not', async () => {
-  const s = new Store({ staleBusyMs: 120 });
-  s.set({ session: 'silent', agent: 'quiet', state: 'busy' });
-  s.set({ session: 'chatty', agent: 'loud', state: 'busy' });
+// This used to promote a silent busy session to idle, on the theory that a
+// working agent reports constantly. It does not: an agent thinking hard with no
+// tool calls reports nothing for minutes, and the lamp turned green while it was
+// still working — telling the user "finished, come and look" on the strength of
+// silence alone. Silence is now shown as silence.
+test('a busy session that goes quiet stays busy, and is marked quiet', async () => {
+  const s = new Store({ quietAfterMs: 100, idleTtlMs: 600_000 });
+  s.set({ session: 'thinking', agent: 'claude', state: 'busy', detail: 'thinking' });
 
-  const keepAlive = setInterval(() => s.set({ session: 'chatty', agent: 'loud', state: 'busy' }), 40);
-  await new Promise((r) => setTimeout(r, 260));
-  clearInterval(keepAlive);
+  await new Promise((r) => setTimeout(r, 220));
   s.sweep();
 
-  const byId = Object.fromEntries(s.snapshot().sessions.map((x) => [x.session, x]));
-  assert.equal(byId.silent.state, 'idle', 'silent agent decayed to idle');
-  assert.equal(byId.silent.stale, true, 'and is marked as assumed rather than reported');
-  assert.equal(byId.chatty.state, 'busy', 'agent that kept reporting was left alone');
+  const x = s.snapshot().sessions[0];
+  assert.equal(x.state, 'busy', 'silence is not evidence that it finished');
+  assert.equal(x.quiet, true, 'but it is shown as unconfirmed');
+  assert.equal(s.snapshot().overall, 'busy');
+});
+
+test('a busy session silent past the idle window is dropped, not turned green', async () => {
+  const s = new Store({ idleTtlMs: 120, quietAfterMs: 50 });
+  s.set({ session: 'gone', agent: 'claude', state: 'busy' });
+
+  await new Promise((r) => setTimeout(r, 240));
+  s.sweep();
+
+  assert.equal(s.snapshot().sessions.length, 0, 'the agent is gone, so the session goes');
+  assert.equal(s.snapshot().overall, 'offline');
 });
 
 test('a waiting session never decays — red must not disappear on its own', async () => {
-  const s = new Store({ staleBusyMs: 60 });
+  const s = new Store({ idleTtlMs: 600_000 });
   s.set({ session: 'a', state: 'waiting' });
   await new Promise((r) => setTimeout(r, 150));
   s.sweep();
@@ -73,7 +84,7 @@ test('a waiting session never decays — red must not disappear on its own', asy
 // the same failure as the stuck-yellow lamp: the light must not report a session
 // that no longer exists.
 test('a green session nobody touches is forgotten, not left claiming "ready"', async () => {
-  const s = new Store({ idleTtlMs: 120, staleBusyMs: 10_000 });
+  const s = new Store({ idleTtlMs: 120 });
   s.set({ session: 'ghost', agent: 'claude', state: 'idle' });
   s.set({ session: 'live', agent: 'claude', state: 'idle' });
 
@@ -88,7 +99,7 @@ test('a green session nobody touches is forgotten, not left claiming "ready"', a
 });
 
 test('a waiting session is never forgotten, however long it waits', async () => {
-  const s = new Store({ idleTtlMs: 60, staleBusyMs: 60 });
+  const s = new Store({ idleTtlMs: 60 });
   s.set({ session: 'a', state: 'waiting' });
   await new Promise((r) => setTimeout(r, 200));
   s.sweep();
@@ -99,7 +110,7 @@ test('a waiting session is never forgotten, however long it waits', async () => 
 // had just said "ready" — the light presented a stale claim with full
 // confidence, and there was no way to tell the difference.
 test('a session that has gone silent is marked quiet, not fresh', async () => {
-  const s = new Store({ quietAfterMs: 100, idleTtlMs: 600_000, staleBusyMs: 600_000 });
+  const s = new Store({ quietAfterMs: 100, idleTtlMs: 600_000 });
   s.set({ session: 'silent', agent: 'claude', state: 'idle' });
   s.set({ session: 'chatty', agent: 'claude', state: 'idle' });
 
@@ -119,7 +130,7 @@ test('a session that has gone silent is marked quiet, not fresh', async () => {
 // nothing else — ever. No prompt, no tool call, no end. It sat on screen as a
 // "ready" agent that had never existed in any meaningful sense.
 test('a session that announces itself and does nothing is forgotten quickly', async () => {
-  const s = new Store({ unusedTtlMs: 100, idleTtlMs: 600_000, staleBusyMs: 600_000 });
+  const s = new Store({ unusedTtlMs: 100, idleTtlMs: 600_000 });
 
   s.set({ session: 'phantom', agent: 'claude', state: 'idle' });      // SessionStart only
   s.set({ session: 'real', agent: 'claude', state: 'busy' });          // did some work
@@ -144,7 +155,7 @@ test('a session counts as used once it goes busy or waiting', () => {
 });
 
 test('sessions expire after the TTL', async () => {
-  const s = new Store({ ttlMs: 80, staleBusyMs: 10_000 });
+  const s = new Store({ ttlMs: 80 });
   s.set({ session: 'a', state: 'idle' });
   await new Promise((r) => setTimeout(r, 140));
   s.sweep();

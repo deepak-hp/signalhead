@@ -17,7 +17,7 @@ const HOOK = path.join(__dirname, '..', 'src', 'hooks', 'claude.js');
 let server;
 let PORT;
 before(async () => {
-  ({ server } = await start({ port: 0, staleBusyMs: 500 }));
+  ({ server } = await start({ port: 0 }));
   PORT = server.address().port;
 });
 after(() => server && server.close());

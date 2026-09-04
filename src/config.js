@@ -18,8 +18,6 @@ const DEFAULTS = {
   clickThrough: true,      // let clicks pass through everywhere except the light itself
   showLabels: true,        // show per-agent pills when more than one agent is active
   sessionTtlMs: 6 * 60 * 60 * 1000,
-  // A busy agent that has not reported in this long is treated as finished.
-  staleBusyMs: 60 * 1000,
   // A green session nobody has touched in this long is treated as gone.
   idleTtlMs: 30 * 60 * 1000,
   // A session that has not reported in this long is shown as quiet, not fresh.

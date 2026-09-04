@@ -14,7 +14,7 @@ let server;
 let base;
 
 test.beforeAll(async () => {
-  const r = await start({ port: 0, staleBusyMs: 600_000, idleTtlMs: 600_000 });
+  const r = await start({ port: 0, idleTtlMs: 600_000 });
   server = r.server;
   base = `http://127.0.0.1:${server.address().port}`;
 });

@@ -25,14 +25,12 @@ function normaliseFuel(fuel) {
 class Store extends EventEmitter {
   constructor({
     ttlMs = 6 * 60 * 60 * 1000,
-    staleBusyMs = 60_000,
     idleTtlMs = 30 * 60 * 1000,
     quietAfterMs = 90_000,
     unusedTtlMs = 2 * 60 * 1000,
   } = {}) {
     super();
     this.ttlMs = ttlMs;
-    this.staleBusyMs = staleBusyMs;
     this.idleTtlMs = idleTtlMs;
     this.quietAfterMs = quietAfterMs;
     this.unusedTtlMs = unusedTtlMs;
@@ -106,13 +104,21 @@ class Store extends EventEmitter {
         continue;
       }
 
-      // A working agent reports constantly, so a `busy` session that has gone
-      // quiet for a minute has almost certainly finished without saying so —
-      // some agents have no reliable "turn ended" event at all. Without this the
-      // lamp stays yellow forever and the tool is worse than useless: it lies.
-      // If the agent is genuinely still working, its next event corrects this.
-      if (s.state === 'busy' && now - s.updatedAt > this.staleBusyMs) {
-        this.sessions.set(id, { ...s, state: 'idle', detail: '', since: now, updatedAt: now, stale: true });
+      // A busy session that has gone quiet is NOT promoted to idle.
+      //
+      // It used to be: the theory was that a working agent reports constantly,
+      // so silence meant it had finished without saying so. That is often true
+      // and occasionally very wrong — an agent thinking hard with no tool calls
+      // reports nothing for minutes, and flipping it to green told the user
+      // "finished, come and look" while it was still working. Silence is not
+      // evidence of completion, and green is a claim, not a shrug.
+      //
+      // Silence is now shown as silence: the session stays busy and the quiet
+      // flag dims it, which says "last I heard it was working, a while ago".
+      // A busy session that has been silent past the idle window is dropped
+      // outright, because by then the agent is gone rather than thinking.
+      if (s.state === 'busy' && now - s.updatedAt > this.idleTtlMs) {
+        this.sessions.delete(id);
         changed = true;
       }
     }
