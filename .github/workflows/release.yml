@@ -1,0 +1,79 @@
+name: release
+
+# Publishing by hand needs an interactive terminal for the 2FA browser flow,
+# which means it can only ever happen from one machine, by one person, at the
+# speed a human can type. Tagging is the release.
+#
+#   npm version patch    # or minor / major — bumps, commits and tags
+#   git push --follow-tags
+#
+# Requires a granular npm access token in the repo secrets as NPM_TOKEN
+# (npmjs.com -> Access Tokens -> Generate -> Granular, scoped to this package,
+# read and write). Automation tokens bypass 2FA by design; that is what they
+# are for.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write      # to create the GitHub release
+  id-token: write      # to attach npm provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      # A tag that disagrees with the manifest publishes a version nobody meant
+      # to ship, under a name nobody can find. Cheap to check, ugly to undo:
+      # npm only allows unpublishing for 72 hours and never reuses a version.
+      - name: Tag must match package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          echo "tag=$TAG  package.json=$PKG"
+          test "$TAG" = "$PKG" || { echo "::error::tag $TAG does not match package.json $PKG"; exit 1; }
+
+      - name: Version must not already be published
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          if npm view "signalhead@$PKG" version >/dev/null 2>&1; then
+            echo "::error::signalhead@$PKG is already on the registry"
+            exit 1
+          fi
+
+      # Never publish a build that has not passed. This is the last gate before
+      # something irreversible.
+      - name: Logic tests
+        run: npm test
+
+      - name: Install browser for the UI tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Rendered UI tests
+        run: npx playwright test
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

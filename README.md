@@ -275,6 +275,28 @@ clicks.
 
 ---
 
+## Releasing
+
+Tagging is the release. CI runs both suites, checks the tag against the
+manifest, publishes to npm with provenance, and cuts a GitHub release:
+
+```bash
+npm version patch          # or minor / major — bumps, commits and tags
+git push --follow-tags
+```
+
+One-time setup: a granular npm access token (npmjs.com → Access Tokens →
+Generate → Granular, scoped to this package, read and write) stored as the
+`NPM_TOKEN` repo secret. Automation tokens bypass 2FA by design, which is the
+whole point — publishing by hand needs an interactive terminal for the browser
+flow, so it can only happen from one machine, by one person.
+
+The workflow refuses to publish if the tag disagrees with `package.json`, if
+that version is already on the registry, or if either suite fails. See
+[.github/workflows/release.yml](.github/workflows/release.yml).
+
+---
+
 ## Autostart
 
 **macOS** — a LaunchAgent at `~/Library/LaunchAgents/com.sig.plist` running
