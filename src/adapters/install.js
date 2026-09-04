@@ -16,6 +16,14 @@ const hookScript = (name) => path.join(ROOT, 'src', 'hooks', `${name}.js`).repla
 const nodeBin = process.execPath.replace(/\\/g, '/');
 const cmdFor = (name) => `"${nodeBin}" "${hookScript(name)}"`;
 
+// Hook commands carry an absolute path to a script in this install. If that
+// install is a working checkout, every hook invocation — and they fire on every
+// tool call — executes a file inside it, which on Windows holds the folder open
+// and makes it unrenameable. Worse, the hooks break silently the day the
+// checkout moves. A global install lives somewhere stable and outside any
+// project, which is where hook paths belong.
+const isCheckout = () => fs.existsSync(path.join(ROOT, '.git'));
+
 function backup(file) {
   if (!fs.existsSync(file)) return null;
   const bak = `${file}.signalhead-backup-${Date.now()}`;
@@ -73,7 +81,7 @@ function installClaude({ scope = 'user' } = {}) {
   }
 
   writeJson(file, settings);
-  return { file, backup: bak, events: CLAUDE_EVENTS.length };
+  return { file, backup: bak, events: CLAUDE_EVENTS.length, fromCheckout: isCheckout(), root: ROOT };
 }
 
 function uninstallClaude({ scope = 'user' } = {}) {
@@ -116,7 +124,7 @@ function installCodex() {
 
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, lines.join('\n').replace(/\n{3,}/g, '\n\n').trimStart() + '\n');
-  return { file, backup: bak };
+  return { file, backup: bak, fromCheckout: isCheckout(), root: ROOT };
 }
 
 function uninstallCodex() {
@@ -151,6 +159,7 @@ function genericSnippet(agent = 'my-agent') {
 }
 
 module.exports = {
+  isCheckout,
   installClaude,
   uninstallClaude,
   installCodex,

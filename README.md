@@ -105,6 +105,15 @@ give you. It covers the editor extension as well as the CLI. Leave
 Both installers back up the file they touch, and `sig uninstall claude|codex`
 puts things back exactly as they were.
 
+**Install once, globally, and wire up from there.** `sig install claude` writes
+an absolute path into `~/.claude/settings.json`, and hooks fire on every tool
+call. Point them at a git checkout and that folder is held open for as long as
+any agent is running — on Windows it then cannot be renamed or deleted, and
+other applications touching it report *"the file is in use by another
+application"*. The hooks also break silently the day the checkout moves. A
+global install lives somewhere stable, outside every project. `sig install` and
+`sig doctor` both warn if you have wired them up from a checkout.
+
 ### 2. The wrapper — works with anything
 
 Runs the agent inside a pseudo-terminal, passes every keystroke and byte through

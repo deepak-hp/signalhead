@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const config = require('./config');
@@ -100,8 +101,14 @@ function spawnOverlay(port) {
   } catch {
     return null;
   }
+  // Deliberately NOT the install directory. A process's working directory is an
+  // open handle to that folder, and on Windows that makes it unrenameable and
+  // undeletable for as long as the light runs — which surfaces to the user as
+  // "the file is in use by another application" from whatever else touches the
+  // folder next. Nothing here needs the project cwd: the entry point is passed
+  // as an absolute path and everything else resolves from __dirname or $HOME.
   const child = spawn(String(electron), [path.join(ROOT, 'src', 'overlay', 'main.js')], {
-    cwd: ROOT,
+    cwd: os.tmpdir(),
     env: { ...process.env, SIGNALHEAD_PORT: String(port), ELECTRON_NO_ATTACH_CONSOLE: '1' },
     stdio: 'ignore',
     detached: false,
@@ -120,8 +127,13 @@ async function cmdStart(flags) {
     await cmdServer({ port });
   }
 
-  // Nothing else to wait on, but the server lives in this process — stay up.
-  const hold = () => new Promise(() => {});
+  // Same reason as the overlay's cwd: this process outlives the command that
+  // started it, so it must not sit holding the directory it was launched from.
+  // Everything the server serves resolves from __dirname.
+  const hold = () => {
+    try { process.chdir(os.tmpdir()); } catch { /* not fatal, just keeps the lock */ }
+    return new Promise(() => {});
+  };
   if (flags['no-overlay']) return hold();
 
   if (flags.browser) {
@@ -143,7 +155,15 @@ async function cmdStart(flags) {
   console.log(`${c.grn('●')} traffic light up. Drag it anywhere; hover for controls.`);
   console.log(c.dim(`  server  http://127.0.0.1:${port}`));
   console.log(c.dim('  stop    sig stop'));
+
+  // Take the window down with us, rather than leaving an orphan holding files.
+  // Killing the parent does not kill the child on Windows.
+  const shutdown = () => { try { child.kill(); } catch {} };
+  process.on('exit', shutdown);
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { shutdown(); process.exit(0); });
   child.on('exit', () => process.exit(0));
+
+  try { process.chdir(os.tmpdir()); } catch { /* see hold() */ }
 }
 
 async function cmdOverlay(flags) {
@@ -250,6 +270,16 @@ function cmdInstall(positional, flags) {
     console.log(c.dim(`  ${r.file}`));
     if (r.backup) console.log(c.dim(`  backup: ${r.backup}`));
     console.log(c.dim('  Restart Claude Code, or run /hooks there, to pick them up.'));
+    if (r.fromCheckout) {
+      console.log('');
+      console.log(`${c.yel('!')} These hooks point at a git checkout:`);
+      console.log(c.dim(`  ${r.root}`));
+      console.log(c.dim('  Hooks run on every tool call, so that folder stays open — on Windows it'));
+      console.log(c.dim('  cannot be renamed or deleted while an agent is running, and other apps'));
+      console.log(c.dim('  touching it report "file in use". The hooks also break if it ever moves.'));
+      console.log(c.dim('  For everyday use, install once and wire up from there:'));
+      console.log(c.dim('    npm install -g signalhead && sig install claude'));
+    }
     return;
   }
   if (target === 'codex') {

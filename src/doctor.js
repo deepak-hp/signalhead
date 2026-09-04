@@ -126,6 +126,16 @@ async function run() {
       check('  hook points at this checkout', 'warn',
         `points outside ${ROOT}`, 'sig install claude   (if you moved the project)');
     }
+
+    // Hooks fire on every tool call. If they run a script from a git checkout,
+    // that folder is held open for as long as an agent is working — on Windows
+    // it cannot then be renamed or deleted, and other applications touching it
+    // report "file in use". They also break the day the checkout moves.
+    if (script && install.isCheckout() && script.startsWith(ROOT.replace(/\\/g, '/'))) {
+      check('  hooks run from a working checkout', 'warn',
+        `${ROOT} is held open while any agent runs`,
+        'npm install -g signalhead && sig install claude');
+    }
   }
 
   // ---- Codex

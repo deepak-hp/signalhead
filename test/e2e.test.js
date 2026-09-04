@@ -132,6 +132,28 @@ test('the overlay page is served for browser mode', async () => {
 
 // -------------------------------------------------------------- installer
 
+// Hook commands carry an absolute path into this install. When that install is
+// a git checkout, every hook invocation executes a file inside it — which holds
+// the folder open on Windows and breaks the day the checkout moves. The
+// installer has to say so rather than let people find out.
+test('installing from a checkout reports that it did', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sig-checkout-'));
+  const cwd = process.cwd();
+  try {
+    process.chdir(dir);
+    fs.mkdirSync('.claude');
+    fs.writeFileSync(path.join('.claude', 'settings.json'), '{}');
+    const r = install.installClaude({ scope: 'project' });
+    // This repo is itself a checkout, so the flag must be set and must name the
+    // directory the user would need to stop using.
+    assert.equal(r.fromCheckout, install.isCheckout(), 'flag reflects reality');
+    assert.ok(r.root, 'and says which directory it means');
+  } finally {
+    process.chdir(cwd);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('installing hooks preserves existing config and is idempotent', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sig-inst-'));
   const cwd = process.cwd();
