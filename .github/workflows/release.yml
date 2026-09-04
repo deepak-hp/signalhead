@@ -36,14 +36,36 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.14'      # trusted publishing needs >= 22.14.0
+          node-version: '24'
           registry-url: https://registry.npmjs.org
 
-      # The npm that ships with Node 22 is 10.x. Trusted publishing landed in
-      # 11.5.1, and without this the publish step falls back to looking for a
-      # token that does not exist.
-      - name: Upgrade npm for trusted publishing
-        run: npm install -g npm@latest
+      # Trusted publishing needs npm >= 11.5.1, which is newer than the npm
+      # bundled with any Node release we would otherwise pin.
+      #
+      # Pinned to the 11 line on purpose. `npm@latest` is 12.x, whose engines
+      # are ^22.22.2 || ^24.15.0 || >=26.0.0 — so "latest npm" silently couples
+      # this workflow to whatever Node the npm team requires next, and it fails
+      # at install time with an engine error. npm 11 needs only >= 22.9.0 and
+      # has everything trusted publishing uses.
+      - name: Install an npm that can do trusted publishing
+        run: npm install -g npm@11
+
+      - name: Verify the toolchain before relying on it
+        run: |
+          node -v
+          npm -v
+          npm -v | node -e "
+            let v = '';
+            process.stdin.on('data', (d) => (v += d)).on('end', () => {
+              const [a, b, c] = v.trim().split('.').map(Number);
+              const ok = a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1)));
+              if (!ok) {
+                console.error('::error::npm ' + v.trim() + ' is too old for trusted publishing (need >= 11.5.1)');
+                process.exit(1);
+              }
+              console.log('npm ' + v.trim() + ' supports trusted publishing');
+            });
+          "
 
       - name: Install
         run: npm install --no-audit --no-fund
