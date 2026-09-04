@@ -203,7 +203,7 @@
 
 <script>
 (() => {
-  const bridge = window.aitl || null;           // present only inside Electron
+  const bridge = window.sig || null;           // present only inside Electron
   const inElectron = !!bridge;
   if (!inElectron) document.body.classList.add('browser');
 

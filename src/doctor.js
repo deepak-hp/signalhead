@@ -1,5 +1,5 @@
 'use strict';
-// `aitl doctor` — checks an install on whatever machine it is run on.
+// `sig doctor` — checks an install on whatever machine it is run on.
 //
 // The test suite proves the logic is correct. This proves *this* machine is
 // wired up: the right binaries, the right paths in the right config files, a
@@ -36,7 +36,7 @@ function exists(p) {
 }
 
 async function run() {
-  console.log(`\nai-traffic-light doctor — ${process.platform} ${os.release()}, node ${process.version}\n`);
+  console.log(`\nsignalhead doctor — ${process.platform} ${os.release()}, node ${process.version}\n`);
 
   // ---- runtime
   const major = Number(process.versions.node.split('.')[0]);
@@ -63,7 +63,7 @@ async function run() {
     check('Live state readable', snap ? 'pass' : 'fail',
       snap ? `overall: ${snap.overall}, ${snap.sessions.length} session(s)` : 'no response');
   } else {
-    check('Server running', 'warn', `nothing listening on port ${config.port()}`, 'aitl start');
+    check('Server running', 'warn', `nothing listening on port ${config.port()}`, 'sig start');
   }
 
   // ---- overlay runtime
@@ -74,27 +74,27 @@ async function run() {
   } catch { /* not installed */ }
   check('Electron (floating window)', electronPath ? 'pass' : 'warn',
     electronPath || 'not installed — the desktop window is unavailable',
-    'npm run setup   (or use: aitl start --browser)');
+    'npm run setup   (or use: sig start --browser)');
 
   // ---- universal wrapper
   let pty = false;
   try { require('node-pty'); pty = true; } catch { /* optional */ }
-  check('node-pty (aitl wrap)', pty ? 'pass' : 'warn',
-    pty ? 'available — `aitl wrap` works for any CLI agent' : 'not built for this Node version',
+  check('node-pty (sig wrap)', pty ? 'pass' : 'warn',
+    pty ? 'available — `sig wrap` works for any CLI agent' : 'not built for this Node version',
     'npm install node-pty   (needs a C++ toolchain)');
 
   // ---- Claude Code hooks
   for (const scope of ['user', 'project']) {
     const file = install.claudeSettingsPath(scope);
     if (!exists(file)) {
-      if (scope === 'user') check('Claude Code hooks (user)', 'warn', `no ${file}`, 'aitl install claude');
+      if (scope === 'user') check('Claude Code hooks (user)', 'warn', `no ${file}`, 'sig install claude');
       continue;
     }
     let settings = {};
     try { settings = JSON.parse(fs.readFileSync(file, 'utf8')); }
     catch (e) {
       check(`Claude Code settings (${scope})`, 'fail', `${file} is not valid JSON: ${e.message}`,
-        'fix or restore the file from its .aitl-backup-* copy');
+        'fix or restore the file from its .signalhead-backup-* copy');
       continue;
     }
 
@@ -103,14 +103,14 @@ async function run() {
       .filter((h) => /hooks[\\/]claude\.js/.test(h.cmd));
 
     if (!ours.length) {
-      if (scope === 'user') check('Claude Code hooks (user)', 'warn', 'not installed', 'aitl install claude');
+      if (scope === 'user') check('Claude Code hooks (user)', 'warn', 'not installed', 'sig install claude');
       continue;
     }
 
     const events = [...new Set(ours.map((h) => h.evt))];
     check(`Claude Code hooks (${scope})`, events.length >= 8 ? 'pass' : 'warn',
       `${events.length} events in ${file}`,
-      events.length >= 8 ? null : 'aitl install claude   (reinstall to add the missing events)');
+      events.length >= 8 ? null : 'sig install claude   (reinstall to add the missing events)');
 
     // The single most common cross-machine failure: the hook points at a node
     // binary or script path that does not exist on this machine (moved checkout,
@@ -119,12 +119,12 @@ async function run() {
     const quoted = cmd.match(/"([^"]+)"/g) || [];
     const [bin, script] = quoted.map((q) => q.slice(1, -1));
     check('  hook interpreter exists', exists(bin) ? 'pass' : 'fail', bin || '(unparsed)',
-      'aitl install claude   (rewrites the paths for this machine)');
+      'sig install claude   (rewrites the paths for this machine)');
     check('  hook script exists', exists(script) ? 'pass' : 'fail', script || '(unparsed)',
-      'aitl install claude   (rewrites the paths for this machine)');
+      'sig install claude   (rewrites the paths for this machine)');
     if (script && !script.startsWith(ROOT.replace(/\\/g, '/'))) {
       check('  hook points at this checkout', 'warn',
-        `points outside ${ROOT}`, 'aitl install claude   (if you moved the project)');
+        `points outside ${ROOT}`, 'sig install claude   (if you moved the project)');
     }
   }
 
@@ -133,10 +133,10 @@ async function run() {
   const sessions = path.join(codexHome, 'sessions');
   if (exists(sessions)) {
     check('Codex session logs', 'pass', sessions);
-    check('  -> full three-lamp support', 'pass', 'run: aitl watch codex');
+    check('  -> full three-lamp support', 'pass', 'run: sig watch codex');
   } else if (exists(codexHome)) {
     check('Codex session logs', 'warn', `${codexHome} exists but no sessions/ yet`,
-      'run Codex once, then: aitl watch codex');
+      'run Codex once, then: sig watch codex');
   } else {
     check('Codex', 'warn', 'not installed on this machine', null);
   }

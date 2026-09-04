@@ -3,6 +3,6 @@
 set -e
 mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-target="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/ai-traffic-light.desktop"
-sed "s|^Exec=.*|Exec=node $(dirname "$here")/src/cli.js start|" "$here/aitl.desktop" > "$target"
+target="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/signalhead.desktop"
+sed "s|^Exec=.*|Exec=node $(dirname "$here")/src/cli.js start|" "$here/signalhead.desktop" > "$target"
 echo "installed $target"

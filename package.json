@@ -1,9 +1,10 @@
 {
-  "name": "ai-traffic-light",
+  "name": "signalhead",
   "version": "1.0.0",
-  "description": "An always-on-top traffic light overlay that shows what your AI coding agents are doing: red = waiting for you, yellow = working, green = done.",
+  "description": "A traffic light for your AI coding agents. Red when Claude Code, Codex or Gemini needs you, yellow while it works, green when it's done. A floating always-on-top overlay for macOS, Windows and Linux.",
   "bin": {
-    "aitl": "src/cli.js"
+    "signalhead": "src/cli.js",
+    "sig": "src/cli.js"
   },
   "main": "src/overlay/main.js",
   "type": "commonjs",
@@ -28,9 +29,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/deepak-hp/ai-traffic-light.git"
+    "url": "https://github.com/deepak-hp/signalhead.git"
   },
-  "homepage": "https://github.com/deepak-hp/ai-traffic-light",
+  "homepage": "https://deepak-hp.github.io/signalhead",
   "keywords": [
     "claude-code",
     "codex",
@@ -49,5 +50,8 @@
     "scripts",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "bugs": {
+    "url": "https://github.com/deepak-hp/signalhead/issues"
+  }
 }

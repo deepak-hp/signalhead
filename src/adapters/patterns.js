@@ -1,5 +1,5 @@
 'use strict';
-// Output signatures used by `aitl wrap` to read any CLI agent's state.
+// Output signatures used by `sig wrap` to read any CLI agent's state.
 //
 // The wrapper watches a rolling tail of the agent's terminal output:
 //   * output is flowing            -> busy

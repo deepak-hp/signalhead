@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const HOME = os.homedir();
 // Our own entries are recognised by the hook script they point at, so uninstall
 // still works if the checkout gets renamed or moved.
-const isOurs = (cmd) => /ai-traffic-light|src[\\/]+hooks[\\/]+(?:claude|codex)\.js/.test(String(cmd || ''));
+const isOurs = (cmd) => /signalhead|src[\\/]+hooks[\\/]+(?:claude|codex)\.js/.test(String(cmd || ''));
 
 const hookScript = (name) => path.join(ROOT, 'src', 'hooks', `${name}.js`).replace(/\\/g, '/');
 const nodeBin = process.execPath.replace(/\\/g, '/');
@@ -18,7 +18,7 @@ const cmdFor = (name) => `"${nodeBin}" "${hookScript(name)}"`;
 
 function backup(file) {
   if (!fs.existsSync(file)) return null;
-  const bak = `${file}.aitl-backup-${Date.now()}`;
+  const bak = `${file}.signalhead-backup-${Date.now()}`;
   fs.copyFileSync(file, bak);
   return bak;
 }

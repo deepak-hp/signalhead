@@ -5,7 +5,7 @@
 // Codex calls the program in `notify` with a single JSON argument describing the
 // event. It only fires on notable moments (turn finished, approval needed), so
 // this adapter drives red and green. For a yellow "working" lamp as well, run
-// Codex through `aitl wrap -- codex` instead.
+// Codex through `sig wrap -- codex` instead.
 
 const { setState } = require('../client');
 

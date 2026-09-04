@@ -2,11 +2,11 @@
 // Universal adapter: run any CLI agent inside a pseudo-terminal, pass every byte
 // through untouched, and infer the lamp from what it prints.
 //
-//   aitl wrap -- gemini
-//   aitl wrap --agent aider -- aider --model sonnet
+//   sig wrap -- gemini
+//   sig wrap --agent aider -- aider --model sonnet
 //
 // This is the fallback for agents with no hook API. Agents that do have one
-// (Claude Code, Codex) should use `aitl install` instead — it is exact, this is
+// (Claude Code, Codex) should use `sig install` instead — it is exact, this is
 // a very good guess.
 
 const os = require('os');
@@ -63,13 +63,13 @@ function run(argv, opts = {}) {
   if (!pty) {
     console.error(
       [
-        'aitl wrap needs a pseudo-terminal so the agent keeps its full interactive UI.',
+        'sig wrap needs a pseudo-terminal so the agent keeps its full interactive UI.',
         '',
         '  npm install node-pty        (inside ' + path.resolve(__dirname, '..', '..') + ')',
         '',
         'Agents with a hook API do not need this at all:',
-        '  aitl install claude',
-        '  aitl install codex',
+        '  sig install claude',
+        '  sig install codex',
       ].join('\n')
     );
     process.exit(1);
@@ -119,7 +119,7 @@ function run(argv, opts = {}) {
     cols: process.stdout.columns || 120,
     rows: process.stdout.rows || 30,
     cwd,
-    env: { ...process.env, AITL_SESSION: session, AITL_AGENT: agent },
+    env: { ...process.env, SIGNALHEAD_SESSION: session, SIGNALHEAD_AGENT: agent },
     useConpty: os.platform() === 'win32' ? undefined : false,
   });
 

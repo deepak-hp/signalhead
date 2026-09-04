@@ -42,13 +42,13 @@ jobs:
             curl -sf http://127.0.0.1:4788/health >/dev/null && break || sleep 0.5
           done
           curl -sf http://127.0.0.1:4788/health
-          AITL_PORT=4788 node src/cli.js set busy --agent ci --session smoke --detail building
-          AITL_PORT=4788 node src/cli.js status | tee /tmp/status.txt
+          SIGNALHEAD_PORT=4788 node src/cli.js set busy --agent ci --session smoke --detail building
+          SIGNALHEAD_PORT=4788 node src/cli.js status | tee /tmp/status.txt
           grep -q busy /tmp/status.txt
-          AITL_PORT=4788 node src/cli.js set idle --agent ci --session smoke
-          AITL_PORT=4788 node src/cli.js status | grep -q idle
-          AITL_PORT=4788 node src/cli.js doctor || true
-          AITL_PORT=4788 node src/cli.js stop
+          SIGNALHEAD_PORT=4788 node src/cli.js set idle --agent ci --session smoke
+          SIGNALHEAD_PORT=4788 node src/cli.js status | grep -q idle
+          SIGNALHEAD_PORT=4788 node src/cli.js doctor || true
+          SIGNALHEAD_PORT=4788 node src/cli.js stop
 
       # Installing hooks must not corrupt a real settings.json on any platform —
       # path separators and quoting are the usual culprits.
@@ -103,6 +103,6 @@ jobs:
           xvfb-run -a node -e "
             const {spawn}=require('child_process');
             const e=require('electron');
-            const p=spawn(e,['src/overlay/main.js'],{env:{...process.env,AITL_PORT:'4790'},stdio:'inherit'});
+            const p=spawn(e,['src/overlay/main.js'],{env:{...process.env,SIGNALHEAD_PORT:'4790'},stdio:'inherit'});
             setTimeout(()=>{ p.kill(); console.log('overlay survived startup'); }, 8000);
           "

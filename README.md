@@ -1,4 +1,4 @@
-# ai-traffic-light
+# signalhead
 
 A traffic light that floats on top of everything and tells you what your AI
 coding agents are doing.
@@ -21,26 +21,26 @@ shell for everything else.
 ## Install
 
 ```bash
-npm install -g ai-traffic-light
-aitl setup      # fetches the Electron runtime for the floating window
-aitl start
+npm install -g signalhead
+sig setup      # fetches the Electron runtime for the floating window
+sig start
 ```
 
 Or without installing anything globally:
 
 ```bash
-npx ai-traffic-light start
+npx signalhead start
 ```
 
 `setup` is a separate step because npm 11 blocks package install scripts by
 default, and that script is what downloads the Electron binary. Skip it and
-`aitl start --browser` still gives you the same light in a browser tab.
+`sig start --browser` still gives you the same light in a browser tab.
 
 From a clone:
 
 ```bash
-git clone https://github.com/deepak-hp/ai-traffic-light
-cd ai-traffic-light && npm install && npm run setup
+git clone https://github.com/deepak-hp/signalhead
+cd signalhead && npm install && npm run setup
 node src/cli.js start
 ```
 
@@ -49,8 +49,8 @@ node src/cli.js start
 ## Use it
 
 ```bash
-aitl start              # server + floating light
-aitl install claude     # wire into Claude Code — takes effect immediately
+sig start              # server + floating light
+sig install claude     # wire into Claude Code — takes effect immediately
 ```
 
 Drag the light anywhere; it remembers where you put it. Hover for a small
@@ -59,11 +59,11 @@ dot, or quit. Clicks pass straight through to whatever is underneath, except on
 the light itself.
 
 ```bash
-aitl status             # what the lights say right now
-aitl clear              # forget sessions left behind by a crashed agent
-aitl doctor             # check this machine is wired up correctly
-aitl demo               # cycle the lamps to check it works
-aitl stop               # shut it all down
+sig status             # what the lights say right now
+sig clear              # forget sessions left behind by a crashed agent
+sig doctor             # check this machine is wired up correctly
+sig demo               # cycle the lamps to check it works
+sig stop               # shut it all down
 ```
 
 ---
@@ -75,8 +75,8 @@ Three tiers, best first.
 ### 1. The agent's own hooks — exact
 
 ```bash
-aitl install claude     # ~/.claude/settings.json   (--scope project for one repo)
-aitl watch codex        # tails Codex's session log; no config touched
+sig install claude     # ~/.claude/settings.json   (--scope project for one repo)
+sig watch codex        # tails Codex's session log; no config touched
 ```
 
 | Agent | Lamps | Mechanism |
@@ -92,9 +92,9 @@ rollout per session under `~/.codex/sessions/YYYY/MM/DD/`, carrying
 `task_started`, `task_complete` and approval events — everything needed for all
 three lamps, including the "working" signal that `notify` structurally cannot
 give you. It covers the editor extension as well as the CLI. Leave
-`aitl watch codex` running next to `aitl start`.
+`sig watch codex` running next to `sig start`.
 
-Both installers back up the file they touch, and `aitl uninstall claude|codex`
+Both installers back up the file they touch, and `sig uninstall claude|codex`
 puts things back exactly as they were.
 
 ### 2. The wrapper — works with anything
@@ -103,9 +103,9 @@ Runs the agent inside a pseudo-terminal, passes every keystroke and byte through
 untouched, and reads the lamp off what it prints.
 
 ```bash
-aitl wrap -- gemini
-aitl wrap -- aider --model sonnet
-aitl wrap --agent my-bot -- ./my-agent.sh
+sig wrap -- gemini
+sig wrap -- aider --model sonnet
+sig wrap --agent my-bot -- ./my-agent.sh
 ```
 
 Output flowing means yellow; output stopping on a confirmation prompt means red;
@@ -119,9 +119,9 @@ This is a very good guess, not ground truth. Prefer tier 1 where it exists.
 ### 3. One line of shell — for everything else
 
 ```bash
-aitl set busy    --agent deploy --detail "building"
-aitl set waiting --agent deploy --detail "approve prod push?"
-aitl set idle    --agent deploy
+sig set busy    --agent deploy --detail "building"
+sig set waiting --agent deploy --detail "approve prod push?"
+sig set idle    --agent deploy
 ```
 
 or over plain HTTP, from any language:
@@ -130,7 +130,7 @@ or over plain HTTP, from any language:
 curl -s "http://127.0.0.1:4747/set/busy?agent=my-bot&session=$$&detail=thinking"
 ```
 
-`aitl install generic --agent my-bot` prints these ready to paste.
+`sig install generic --agent my-bot` prints these ready to paste.
 
 ---
 
@@ -143,15 +143,15 @@ It fills from the bottom and turns amber below 40% and red below 15%.
 Codex reports real numbers, so it is automatic:
 
 ```bash
-aitl watch codex          # gauge tracks the plan quota from Codex's own logs
-aitl watch codex --fuel context   # track context window fill instead
+sig watch codex          # gauge tracks the plan quota from Codex's own logs
+sig watch codex --fuel context   # track context window fill instead
 ```
 
 Anything else can drive it in one line:
 
 ```bash
-aitl fuel 63 --agent claude --label "plan quota"
-aitl fuel 12 --used --agent ci --label "build minutes"   # --used flips the sense
+sig fuel 63 --agent claude --label "plan quota"
+sig fuel 12 --used --agent ci --label "build minutes"   # --used flips the sense
 ```
 
 Fuel is always *remaining*, 0–100. With several agents reporting, the gauge shows
@@ -184,7 +184,7 @@ The core is plain Node with no runtime dependencies, so the logic is genuinely
 portable and CI proves it on all three. The *window* is Electron: transparency,
 click-through and always-on-top behave slightly differently per platform, and
 only Windows has been looked at by a human. On Linux it needs a compositing
-window manager for transparency — without one, use `aitl start --browser`.
+window manager for transparency — without one, use `sig start --browser`.
 
 ---
 
@@ -192,7 +192,7 @@ window manager for transparency — without one, use `aitl start --browser`.
 
 ```bash
 npm test        # 42 tests: state logic, adapters, hooks, installer, server, fuel
-aitl doctor     # this machine: binaries, config paths, live server
+sig doctor     # this machine: binaries, config paths, live server
 ```
 
 `npm test` proves the logic. `doctor` proves the wiring — the right Node binary,
@@ -211,8 +211,8 @@ checks yourself: `npm run test:linux`.
 
 ```
 agent hooks ─┐
-aitl watch ──┼──> localhost:4747 ──SSE──> overlay window (Electron)
-aitl wrap  ──┤      state store             or a browser tab
+sig watch ──┼──> localhost:4747 ──SSE──> overlay window (Electron)
+sig wrap  ──┤      state store             or a browser tab
 curl / set ──┘
 ```
 
@@ -232,7 +232,7 @@ browser source.
 Nothing leaves your machine. The server listens on loopback only and holds
 nothing but the current state of each session.
 
-Settings live in `~/.ai-traffic-light/config.json` — port, window position,
+Settings live in `~/.signalhead/config.json` — port, window position,
 theme, `staleBusyMs`, and `clickThrough` if you would rather the window swallow
 clicks.
 
@@ -240,10 +240,10 @@ clicks.
 
 ## Autostart
 
-**macOS** — a LaunchAgent at `~/Library/LaunchAgents/com.aitl.plist` running
+**macOS** — a LaunchAgent at `~/Library/LaunchAgents/com.sig.plist` running
 `node /path/to/src/cli.js start`, then `launchctl load` it.
 
-**Windows** — put a shortcut to [`scripts/aitl-start.vbs`](scripts/aitl-start.vbs)
+**Windows** — put a shortcut to [`scripts/signalhead-start.vbs`](scripts/signalhead-start.vbs)
 (no console window) in `shell:startup`.
 
 **Linux** — `bash scripts/install-linux-autostart.sh` writes a `.desktop` entry
@@ -253,7 +253,7 @@ into `~/.config/autostart`.
 
 ## When the light looks wrong
 
-Every hook event is appended to `~/.ai-traffic-light/hook-events.log` with the
+Every hook event is appended to `~/.signalhead/hook-events.log` with the
 event name, the state it mapped to, and the session it came from:
 
 ```
@@ -263,7 +263,7 @@ event name, the state it mapped to, and the session it came from:
 
 That log is the fastest way to tell "the agent never sent anything" apart from
 "the agent sent something I mapped wrong" — different bugs, indistinguishable
-from the lamp alone. `AITL_LOG=0` turns it off.
+from the lamp alone. `SIGNALHEAD_LOG=0` turns it off.
 
 Two behaviours worth knowing, both learned the hard way:
 
@@ -274,13 +274,13 @@ Two behaviours worth knowing, both learned the hard way:
   forgotten.** An agent that crashes or is force-quit never sends its "session
   ended" event, so its pill would otherwise sit there for hours claiming to be
   ready when nothing is running. If it is still alive, its next event brings it
-  straight back. `aitl clear` does it immediately. A **red** session is never
+  straight back. `sig clear` does it immediately. A **red** session is never
   aged out, however long it waits.
 - **A `busy` session that goes quiet for `staleBusyMs` (default 60s) falls back
   to green.** A working agent emits events constantly, so a long silence almost
   always means it finished without saying so — and some agents have no reliable
   "turn ended" event at all. If it really is still working, its next event
-  corrects the lamp immediately. `aitl status` marks these
+  corrects the lamp immediately. `sig status` marks these
   `no finish signal — assumed done`.
 
 ---

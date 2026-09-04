@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 
 const HOME = os.homedir();
-const DIR = process.env.AITL_HOME || path.join(HOME, '.ai-traffic-light');
+const DIR = process.env.SIGNALHEAD_HOME || path.join(HOME, '.signalhead');
 const CONFIG_FILE = path.join(DIR, 'config.json');
 const PORT_FILE = path.join(DIR, 'port');
 const LOG_FILE = path.join(DIR, 'server.log');
@@ -45,7 +45,7 @@ function save(patch) {
 }
 
 function port() {
-  if (process.env.AITL_PORT) return Number(process.env.AITL_PORT);
+  if (process.env.SIGNALHEAD_PORT) return Number(process.env.SIGNALHEAD_PORT);
   return load().port;
 }
 

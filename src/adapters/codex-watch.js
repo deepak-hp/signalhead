@@ -6,7 +6,7 @@
 // and that stream carries task_started / task_complete / approval events — enough
 // to drive all three lamps. This tails those files.
 //
-//   aitl watch codex
+//   sig watch codex
 //
 // Works for the CLI and the editor extension alike, since both write rollouts.
 

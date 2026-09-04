@@ -2,7 +2,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const config = require('../config');
 
-contextBridge.exposeInMainWorld('aitl', {
+contextBridge.exposeInMainWorld('sig', {
   serverUrl: `http://127.0.0.1:${config.port()}`,
   getConfig: () => ipcRenderer.invoke('config:get'),
   saveConfig: (patch) => ipcRenderer.invoke('config:save', patch),

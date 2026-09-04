@@ -4,7 +4,7 @@ const path = require('path');
 const http = require('http');
 const config = require('../config');
 
-const PORT = Number(process.env.AITL_PORT) || config.port();
+const PORT = Number(process.env.SIGNALHEAD_PORT) || config.port();
 const URL_BASE = `http://127.0.0.1:${PORT}`;
 
 let win = null;
@@ -17,7 +17,7 @@ function waitForServer(tries = 40) {
     const attempt = (n) => {
       const req = http.get(`${URL_BASE}/health`, (res) => { res.resume(); resolve(); });
       req.on('error', () => {
-        if (n <= 0) return reject(new Error(`no ai-traffic-light server on ${URL_BASE}`));
+        if (n <= 0) return reject(new Error(`no signalhead server on ${URL_BASE}`));
         setTimeout(() => attempt(n - 1), 250);
       });
       req.setTimeout(1000, () => req.destroy());
@@ -167,7 +167,7 @@ app.whenReady().then(async () => {
     await waitForServer();
   } catch (err) {
     console.error(err.message);
-    console.error('Start it first with:  aitl start');
+    console.error('Start it first with:  sig start');
     return app.quit();
   }
   createWindow();

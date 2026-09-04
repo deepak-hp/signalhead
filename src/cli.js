@@ -42,7 +42,7 @@ const DOT = { waiting: () => c.red('●'), busy: () => c.yel('●'), idle: () =>
 
 function usage() {
   console.log(`
-${c.b('ai-traffic-light')} — a red/yellow/green lamp that floats over everything and
+${c.b('signalhead')} — a red/yellow/green lamp that floats over everything and
 tells you what your AI coding agents are doing.
 
   ${c.red('●')} red     an agent stopped and needs you (permission, question, choice)
@@ -50,29 +50,29 @@ tells you what your AI coding agents are doing.
   ${c.grn('●')} green   an agent finished and is ready for the next task
 
 ${c.b('USAGE')}
-  aitl start                    start the server and the floating overlay
-  aitl server                   state server only (no window)
-  aitl overlay                  overlay only (server must already run)
-  aitl stop                     shut everything down
+  sig start                    start the server and the floating overlay
+  sig server                   state server only (no window)
+  sig overlay                  overlay only (server must already run)
+  sig stop                     shut everything down
 
-  aitl install claude           wire into Claude Code hooks   ${c.dim('(exact)')}
-  aitl install codex            wire into Codex notify        ${c.dim('(red + green)')}
-  aitl install generic          print snippets for any other tool
-  aitl uninstall claude|codex   remove those again
+  sig install claude           wire into Claude Code hooks   ${c.dim('(exact)')}
+  sig install codex            wire into Codex notify        ${c.dim('(red + green)')}
+  sig install generic          print snippets for any other tool
+  sig uninstall claude|codex   remove those again
 
-  aitl wrap -- <command>        run any agent in a watched terminal
-                                ${c.dim('e.g. aitl wrap -- gemini')}
+  sig wrap -- <command>        run any agent in a watched terminal
+                                ${c.dim('e.g. sig wrap -- gemini')}
 
-  aitl watch codex              read Codex's own session logs  ${c.dim('(all 3 lamps)')}
+  sig watch codex              read Codex's own session logs  ${c.dim('(all 3 lamps)')}
 
-  aitl set <busy|waiting|idle|offline> [--agent name] [--session id] [--detail text]
-  aitl fuel <percent> [--used] [--agent name] [--label text]
+  sig set <busy|waiting|idle|offline> [--agent name] [--session id] [--detail text]
+  sig fuel <percent> [--used] [--agent name] [--label text]
                                 drive the fuel gauge from anything
-  aitl status                   print current lights
-  aitl clear [--session id]     forget sessions left behind by a crashed agent
-  aitl setup                    download the Electron runtime for the window
-  aitl doctor                   check this machine is wired up correctly
-  aitl demo                     cycle the lamps to check the overlay works
+  sig status                   print current lights
+  sig clear [--session id]     forget sessions left behind by a crashed agent
+  sig setup                    download the Electron runtime for the window
+  sig doctor                   check this machine is wired up correctly
+  sig demo                     cycle the lamps to check the overlay works
 
 ${c.b('OPTIONS')}
   --port <n>       server port (default ${config.DEFAULTS.port})
@@ -102,7 +102,7 @@ function spawnOverlay(port) {
   }
   const child = spawn(String(electron), [path.join(ROOT, 'src', 'overlay', 'main.js')], {
     cwd: ROOT,
-    env: { ...process.env, AITL_PORT: String(port), ELECTRON_NO_ATTACH_CONSOLE: '1' },
+    env: { ...process.env, SIGNALHEAD_PORT: String(port), ELECTRON_NO_ATTACH_CONSOLE: '1' },
     stdio: 'ignore',
     detached: false,
   });
@@ -136,13 +136,13 @@ async function cmdStart(flags) {
   if (!child) {
     console.log(`${c.yel('!')} Electron is not installed, so there is no floating window.`);
     console.log(`  ${c.dim('npm install')}  inside ${ROOT}`);
-    console.log(`  ${c.dim('or use')} aitl start --browser  ${c.dim('for a browser overlay')}`);
+    console.log(`  ${c.dim('or use')} sig start --browser  ${c.dim('for a browser overlay')}`);
     return hold();
   }
 
   console.log(`${c.grn('●')} traffic light up. Drag it anywhere; hover for controls.`);
   console.log(c.dim(`  server  http://127.0.0.1:${port}`));
-  console.log(c.dim('  stop    aitl stop'));
+  console.log(c.dim('  stop    sig stop'));
   child.on('exit', () => process.exit(0));
 }
 
@@ -150,12 +150,12 @@ async function cmdOverlay(flags) {
   const port = Number(flags.port) || config.port();
   const running = await client.health();
   if (!running) {
-    console.error(`${c.red('●')} no server on port ${port}. Run: aitl start`);
+    console.error(`${c.red('●')} no server on port ${port}. Run: sig start`);
     process.exit(1);
   }
   const child = spawnOverlay(port);
   if (!child) {
-    console.error('Electron is not installed. Run `npm install` here, or `aitl start --browser`.');
+    console.error('Electron is not installed. Run `npm install` here, or `sig start --browser`.');
     process.exit(1);
   }
   child.on('exit', (code) => process.exit(code || 0));
@@ -170,7 +170,7 @@ async function cmdStop() {
 
 async function cmdSet(positional, flags) {
   const state = positional[0];
-  if (!state) { console.error('usage: aitl set <busy|waiting|idle|offline>'); process.exit(1); }
+  if (!state) { console.error('usage: sig set <busy|waiting|idle|offline>'); process.exit(1); }
   const res = await client.setState({
     state,
     agent: flags.agent || 'agent',
@@ -178,13 +178,13 @@ async function cmdSet(positional, flags) {
     detail: flags.detail || '',
     cwd: flags.cwd || '',
   });
-  if (!res) console.error(c.dim('(no server listening — start it with `aitl start`)'));
+  if (!res) console.error(c.dim('(no server listening — start it with `sig start`)'));
 }
 
 async function cmdFuel(positional, flags) {
   const raw = Number(positional[0]);
   if (!Number.isFinite(raw)) {
-    console.error('usage: aitl fuel <percent-remaining> [--used] [--agent name] [--label text]');
+    console.error('usage: sig fuel <percent-remaining> [--used] [--agent name] [--label text]');
     process.exit(1);
   }
   // --used lets a reporter that counts consumption skip the arithmetic.
@@ -196,7 +196,7 @@ async function cmdFuel(positional, flags) {
     fuel: { remaining, label: flags.label || 'remaining' },
     ...(flags.state ? { state: flags.state } : {}),
   });
-  if (!res) console.error(c.dim('(no server listening — start it with `aitl start`)'));
+  if (!res) console.error(c.dim('(no server listening — start it with `sig start`)'));
 }
 
 async function cmdClear(flags) {
@@ -256,14 +256,14 @@ function cmdInstall(positional, flags) {
     console.log(c.dim(`  ${r.file}`));
     if (r.backup) console.log(c.dim(`  backup: ${r.backup}`));
     console.log(c.dim('  Codex only notifies on turn end / approval, so you get red and green.'));
-    console.log(c.dim('  For a yellow "working" lamp too: aitl wrap -- codex'));
+    console.log(c.dim('  For a yellow "working" lamp too: sig wrap -- codex'));
     return;
   }
   if (target === 'generic') {
     console.log(install.genericSnippet(flags.agent || 'my-agent'));
     return;
   }
-  console.error('usage: aitl install <claude|codex|generic>');
+  console.error('usage: sig install <claude|codex|generic>');
   process.exit(1);
 }
 
@@ -280,7 +280,7 @@ function cmdUninstall(positional, flags) {
     console.log(`removed traffic-light notify from ${r.file}`);
     return;
   }
-  console.error('usage: aitl uninstall <claude|codex>');
+  console.error('usage: sig uninstall <claude|codex>');
   process.exit(1);
 }
 
@@ -290,7 +290,7 @@ async function main() {
   const { flags, positional, rest } = parse(process.argv.slice(2));
   const cmd = positional.shift();
 
-  if (flags.port) process.env.AITL_PORT = String(Number(flags.port));
+  if (flags.port) process.env.SIGNALHEAD_PORT = String(Number(flags.port));
 
   switch (cmd) {
     case 'start':      return cmdStart(flags);
@@ -310,7 +310,7 @@ async function main() {
     case 'watch': {
       const target = (positional[0] || '').toLowerCase();
       if (target !== 'codex') {
-        console.error('usage: aitl watch codex');
+        console.error('usage: sig watch codex');
         process.exit(1);
       }
       require('./adapters/codex-watch').run(flags);
@@ -318,7 +318,7 @@ async function main() {
     }
     case 'wrap': {
       const argv = rest.length ? rest : positional;
-      if (!argv.length) { console.error('usage: aitl wrap -- <command> [args...]'); process.exit(1); }
+      if (!argv.length) { console.error('usage: sig wrap -- <command> [args...]'); process.exit(1); }
       return require('./adapters/wrap').run(argv, flags);
     }
     case 'help':

@@ -84,7 +84,7 @@ const HOOK = path.join(__dirname, '..', 'src', 'hooks', 'claude.js');
 function runHook(event) {
   const out = execFileSync(process.execPath, [HOOK], {
     input: JSON.stringify(event),
-    env: { ...process.env, AITL_PORT: '4999', AITL_LOG: '0' },
+    env: { ...process.env, SIGNALHEAD_PORT: '4999', SIGNALHEAD_LOG: '0' },
     encoding: 'utf8',
     timeout: 5000,
   });
@@ -101,7 +101,7 @@ test('hook survives malformed input', () => {
   assert.doesNotThrow(() =>
     execFileSync(process.execPath, [HOOK], {
       input: 'not json at all',
-      env: { ...process.env, AITL_PORT: '4999', AITL_LOG: '0' },
+      env: { ...process.env, SIGNALHEAD_PORT: '4999', SIGNALHEAD_LOG: '0' },
       encoding: 'utf8',
       timeout: 5000,
     })

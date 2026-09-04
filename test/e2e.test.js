@@ -36,7 +36,7 @@ const fire = (event) =>
     const cp = execFile(
       process.execPath,
       [HOOK],
-      { env: { ...process.env, AITL_PORT: String(PORT), AITL_LOG: '0' }, timeout: 5000 },
+      { env: { ...process.env, SIGNALHEAD_PORT: String(PORT), SIGNALHEAD_LOG: '0' }, timeout: 5000 },
       (err) => (err ? reject(err) : resolve())
     );
     cp.stdin.end(JSON.stringify(event));
@@ -133,7 +133,7 @@ test('the overlay page is served for browser mode', async () => {
 // -------------------------------------------------------------- installer
 
 test('installing hooks preserves existing config and is idempotent', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aitl-inst-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sig-inst-'));
   const cwd = process.cwd();
   try {
     process.chdir(dir);

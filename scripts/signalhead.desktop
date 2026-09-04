@@ -2,7 +2,7 @@
 Type=Application
 Name=AI Traffic Light
 Comment=Shows what your AI coding agents are doing
-Exec=aitl start
+Exec=sig start
 Icon=utilities-terminal
 Terminal=false
 Categories=Development;Utility;

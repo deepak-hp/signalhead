@@ -3,7 +3,7 @@
 // Claude Code hook adapter.
 //
 // Claude Code pipes a JSON event on stdin for every lifecycle hook. One script
-// handles them all and maps each to a lamp. Registered by `aitl install claude`.
+// handles them all and maps each to a lamp. Registered by `sig install claude`.
 //
 // Never fail loudly: a hook that errors or hangs stalls the agent it watches.
 
@@ -12,11 +12,11 @@ const path = require('path');
 const { setState } = require('../client');
 const { DIR, ensureDir } = require('../config');
 
-// Every event that arrives, appended to ~/.ai-traffic-light/hook-events.log.
+// Every event that arrives, appended to ~/.signalhead/hook-events.log.
 // Cheap, and the only way to see what an agent actually sends versus what its
-// docs claim. Set AITL_LOG=0 to turn it off.
+// docs claim. Set SIGNALHEAD_LOG=0 to turn it off.
 function log(line) {
-  if (process.env.AITL_LOG === '0') return;
+  if (process.env.SIGNALHEAD_LOG === '0') return;
   try {
     ensureDir();
     const file = path.join(DIR, 'hook-events.log');

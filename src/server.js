@@ -24,7 +24,7 @@ function start({ port = config.port(), ttlMs, staleBusyMs, idleTtlMs } = {}) {
   const cfg = config.load();
   const store = new Store({
     ttlMs: ttlMs ?? cfg.sessionTtlMs,
-    staleBusyMs: staleBusyMs ?? (Number(process.env.AITL_STALE_BUSY_MS) || cfg.staleBusyMs),
+    staleBusyMs: staleBusyMs ?? (Number(process.env.SIGNALHEAD_STALE_BUSY_MS) || cfg.staleBusyMs),
     idleTtlMs: idleTtlMs ?? cfg.idleTtlMs,
   });
   const clients = new Set();
@@ -124,6 +124,6 @@ function start({ port = config.port(), ttlMs, staleBusyMs, idleTtlMs } = {}) {
 module.exports = { start };
 
 if (require.main === module) {
-  start().then(({ port }) => console.log(`ai-traffic-light server on http://127.0.0.1:${port}`))
+  start().then(({ port }) => console.log(`signalhead server on http://127.0.0.1:${port}`))
     .catch((e) => { console.error(e.message); process.exit(1); });
 }
