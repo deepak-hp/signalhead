@@ -205,6 +205,24 @@ smoke test, a hook install/uninstall round trip, and a headless overlay launch �
 see [.github/workflows/test.yml](.github/workflows/test.yml). To run the Linux
 checks yourself: `npm run test:linux`.
 
+### Seeing red on purpose
+
+Yellow and green show up on their own within seconds of using an agent. Red is
+the one worth deliberately checking, since it is the whole point of the tool.
+
+**Ask Claude Code something it has to stop and ask you about** — a question with
+options, or a decision it cannot make alone. The lamp goes red and stays red
+until you answer, however long that takes.
+
+The obvious-looking approach — "run a command that needs permission" — is
+unreliable, because a session with permissions already granted never prompts, so
+the `Notification` hook never fires and the lamp correctly stays yellow. That is
+not a bug, and chasing it will waste your time. A question that genuinely blocks
+on a human always fires.
+
+For a wrapped agent, `sig wrap -- <cmd>` goes red whenever output stops on
+something that looks like a confirmation prompt.
+
 ---
 
 ## How it fits together
