@@ -84,6 +84,34 @@ sig stop               # shut it all down
 
 ---
 
+## Every command
+
+| | |
+|---|---|
+| `sig start` | run it in the background; the prompt comes straight back |
+| `sig start --foreground` | keep it attached to this terminal (Ctrl+C stops it) |
+| `sig start --browser` | show the light in a browser tab instead of a window |
+| `sig stop` | shut down the server and the window, from any terminal |
+| `sig server` | the state server alone, with no window |
+| `sig overlay` | a window alone, attached to a server that is already running |
+| `sig connect claude\|codex\|generic` | wire an agent up (`install` still works) |
+| `sig disconnect claude\|codex` | put its config back exactly as it was (`uninstall` too) |
+| `sig watch codex` | follow Codex's own session log; leave it running |
+| `sig wrap -- <cmd>` | run any other CLI agent in a watched terminal |
+| `sig set <state>` | drive the lamp from a script |
+| `sig fuel <percent>` | drive the gauge from a script |
+| `sig status` | what the light says right now, as text |
+| `sig clear` | forget sessions left behind by a crashed agent |
+| `sig doctor` | check this machine is wired up correctly |
+| `sig setup` | fetch the Electron runtime for the window |
+| `sig demo` | cycle the lamps to check the window works |
+
+`sig server` and `sig overlay` are the split: run the server on the machine
+doing the work and the window wherever you are looking, pointing the window at
+it with `--port`.
+
+---
+
 ## Connecting your agents
 
 Three tiers, best first.
@@ -219,8 +247,8 @@ window manager for transparency — without one, use `sig start --browser`.
 ## Is it working on *this* machine?
 
 ```bash
-npm test         # 50 logic tests: state machine, adapters, hooks, installer, fuel
-npm run test:ui  # 24 rendered tests: the real overlay, in a real browser
+npm test         # 53 logic tests: state machine, adapters, hooks, installer, fuel
+npm run test:ui  # 26 rendered tests: the real overlay, in a real browser
 sig doctor       # this machine: binaries, config paths, live server
 ```
 
