@@ -158,8 +158,23 @@ function genericSnippet(agent = 'my-agent') {
   ].join('\n');
 }
 
+// How many of our hook entries are live, so the CLI can tell a fresh install
+// from a wired-up one and give the right next step.
+function claudeHookCount(scope = 'user') {
+  try {
+    const settings = readJson(claudeSettingsPath(scope));
+    return Object.values(settings.hooks || {})
+      .flat()
+      .flatMap((g) => g.hooks || [])
+      .filter((h) => isOurs(h.command)).length;
+  } catch {
+    return 0;
+  }
+}
+
 module.exports = {
   isCheckout,
+  claudeHookCount,
   installClaude,
   uninstallClaude,
   installCodex,

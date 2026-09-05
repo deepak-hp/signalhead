@@ -160,6 +160,30 @@ test('the CLI reports a rejected state instead of failing silently', async () =>
   assert.equal(good.stderr.trim(), '');
 });
 
+// A dark light and a prompt is not a finished setup. `start` used to end with
+// "stop it with: sig stop" — telling people how to quit something they had not
+// finished wiring up, with no mention of the step that makes it do anything.
+test('start tells you the next step, and which one depends on what is connected', async () => {
+  const CLI = path.join(__dirname, '..', 'src', 'cli.js');
+  const fake = fs.mkdtempSync(path.join(os.tmpdir(), 'sig-fresh-'));
+  const run = (env) =>
+    new Promise((resolve) => {
+      const cp = execFile(process.execPath, [CLI, 'start', '--foreground', '--no-overlay', '--port', '4797'],
+        { env: { ...process.env, ...env } }, () => {});
+      let out = '';
+      cp.stdout.on('data', (d) => (out += d));
+      setTimeout(() => { cp.kill(); resolve(out); }, 2500);
+    });
+
+  try {
+    const fresh = await run({ HOME: fake, USERPROFILE: fake });
+    assert.match(fresh, /Nothing is connected yet/, 'a fresh machine is told the light will stay dark');
+    assert.match(fresh, /sig connect claude/, 'and given the command that fixes it');
+  } finally {
+    fs.rmSync(fake, { recursive: true, force: true });
+  }
+});
+
 // -------------------------------------------------------------- installer
 
 // Hook commands carry an absolute path into this install. When that install is

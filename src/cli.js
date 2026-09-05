@@ -191,7 +191,31 @@ async function cmdStartDetached(flags) {
 
   console.log(`${c.grn('●')} traffic light running in the background.`);
   console.log(c.dim('  drag it anywhere; hover it for controls'));
-  console.log(c.dim(`  stop it with:  sig stop`));
+  console.log('');
+  printNextStep();
+}
+
+// The light shows nothing until an agent reports to it. Ending `start` with
+// "stop it with: sig stop" told people how to quit something they had not
+// finished setting up — so say what the actual next step is, and only say it
+// when it is still outstanding.
+function printNextStep() {
+  const connected = install.claudeHookCount('user') > 0 || install.claudeHookCount('project') > 0;
+
+  if (connected) {
+    console.log(`${c.grn('✓')} Claude Code is connected — it lights up on your next message.`);
+    console.log(c.dim('  sig status   what the light says right now'));
+    console.log(c.dim('  sig stop     quit'));
+    return;
+  }
+
+  console.log(`${c.yel('→')} Nothing is connected yet, so the light will stay dark.`);
+  console.log('  Connect an agent:');
+  console.log(`    ${c.b('sig connect claude')}      ${c.dim('Claude Code')}`);
+  console.log(`    ${c.b('sig watch codex')}         ${c.dim('Codex (leave it running)')}`);
+  console.log(`    ${c.b('sig wrap -- gemini')}      ${c.dim('Gemini, Aider, or any other CLI')}`);
+  console.log('');
+  console.log(c.dim('  sig stop  to quit'));
 }
 
 async function cmdStart(flags) {
@@ -211,7 +235,11 @@ async function cmdStart(flags) {
     try { process.chdir(os.tmpdir()); } catch { /* not fatal, just keeps the lock */ }
     return new Promise(() => {});
   };
-  if (flags['no-overlay']) return hold();
+  if (flags['no-overlay']) {
+    console.log('');
+    printNextStep();
+    return hold();
+  }
 
   if (flags.browser) {
     const url = `http://127.0.0.1:${port}/`;
@@ -245,6 +273,8 @@ async function cmdStart(flags) {
   console.log(`${c.grn('●')} traffic light up. Drag it anywhere; hover for controls.`);
   console.log(c.dim(`  server  http://127.0.0.1:${port}`));
   console.log(c.dim('  stop    Ctrl+C here, or `sig stop` from another terminal'));
+  console.log('');
+  printNextStep();
 
   // Take the window down with us, rather than leaving an orphan holding files.
   // Killing the parent does not kill the child on Windows.
@@ -373,7 +403,10 @@ function cmdInstall(positional, flags) {
     console.log(`${c.grn('●')} Claude Code hooks installed (${r.events} events)`);
     console.log(c.dim(`  ${r.file}`));
     if (r.backup) console.log(c.dim(`  backup: ${r.backup}`));
-    console.log(c.dim('  Restart Claude Code, or run /hooks there, to pick them up.'));
+    console.log(c.dim('  It takes effect immediately — no restart needed.'));
+    console.log('');
+    console.log(`${c.grn('✓')} Send Claude Code a message and the light turns yellow.`);
+    console.log(c.dim('  Ask it something it must stop and ask you about, and it turns red.'));
     if (r.fromCheckout) {
       console.log('');
       console.log(`${c.yel('!')} These hooks point at a git checkout:`);
