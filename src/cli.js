@@ -51,7 +51,8 @@ tells you what your AI coding agents are doing.
   ${c.grn('●')} green   an agent finished and is ready for the next task
 
 ${c.b('USAGE')}
-  sig start                    start the server and the floating overlay
+  sig start                    start it in the background and hand the prompt back
+  sig start --foreground       keep it attached to this terminal (Ctrl+C to stop)
   sig server                   state server only (no window)
   sig overlay                  overlay only (server must already run)
   sig stop                     shut everything down
@@ -129,6 +130,62 @@ function spawnOverlay(port) {
   return child;
 }
 
+// `sig start` used to hold the terminal open, then tell you to run `sig stop` —
+// which you could not type, because the terminal was busy running it. And
+// closing that terminal killed the light. A desk widget should not hold a shell
+// hostage: the window is the interface, so start detaches by default and hands
+// the prompt straight back. `--foreground` keeps the old behaviour for anyone
+// supervising it themselves.
+async function cmdStartDetached(flags) {
+  const port = Number(flags.port) || config.port();
+
+  const running = await client.health();
+  if (running) {
+    console.log(`${c.dim('already running on port ' + running.port)}`);
+    console.log(c.dim('  stop it with:  sig stop'));
+    return;
+  }
+
+  const args = [path.join(ROOT, 'src', 'cli.js'), 'start', '--foreground', '--port', String(port)];
+  if (flags['no-overlay']) args.push('--no-overlay');
+  if (flags.browser) args.push('--browser');
+
+  const child = spawn(process.execPath, args, {
+    detached: true,
+    stdio: 'ignore',
+    cwd: os.tmpdir(),
+    windowsHide: true,
+  });
+  child.unref();
+
+  // Do not claim success before it is listening — a premature "it's up" would
+  // be a lie. How long to allow depends on whether the window runtime has to be
+  // fetched first, which is minutes on a cold cache and seconds otherwise.
+  let hasRuntime = true;
+  try { require('electron'); } catch { hasRuntime = false; }
+  if (!hasRuntime) console.log(c.dim('  fetching the window runtime, once — this can take a minute…'));
+
+  const budgetMs = hasRuntime ? 20_000 : 180_000;
+  const deadline = Date.now() + budgetMs;
+  let up = null;
+  while (Date.now() < deadline) {
+    up = await client.health();
+    if (up) break;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
+  if (!up) {
+    console.error(`${c.red('●')} it did not come up within ${Math.round(budgetMs / 1000)}s.`);
+    console.error(c.dim('  run it attached to see the error:  sig start --foreground'));
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`${c.grn('●')} traffic light running in the background.`);
+  console.log(c.dim('  drag it anywhere; hover it for controls'));
+  console.log(c.dim(`  stop it with:  sig stop`));
+}
+
 async function cmdStart(flags) {
   const port = Number(flags.port) || config.port();
 
@@ -179,7 +236,7 @@ async function cmdStart(flags) {
 
   console.log(`${c.grn('●')} traffic light up. Drag it anywhere; hover for controls.`);
   console.log(c.dim(`  server  http://127.0.0.1:${port}`));
-  console.log(c.dim('  stop    sig stop'));
+  console.log(c.dim('  stop    Ctrl+C here, or `sig stop` from another terminal'));
 
   // Take the window down with us, rather than leaving an orphan holding files.
   // Killing the parent does not kill the child on Windows.
@@ -364,7 +421,7 @@ async function main() {
   if (flags.port) process.env.SIGNALHEAD_PORT = String(Number(flags.port));
 
   switch (cmd) {
-    case 'start':      return cmdStart(flags);
+    case 'start':      return flags.foreground ? cmdStart(flags) : cmdStartDetached(flags);
     case 'server':     return cmdServer(flags).then(() => new Promise(() => {}));
     case 'overlay':    return cmdOverlay(flags);
     case 'stop':       return cmdStop();

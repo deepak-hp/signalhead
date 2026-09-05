@@ -60,9 +60,14 @@ node src/cli.js start
 ## Use it
 
 ```bash
-sig start              # server + floating light
+sig start              # runs in the background and hands the prompt back
 sig connect claude     # wire into Claude Code — takes effect immediately
 ```
+
+`sig start` detaches, so the terminal stays yours and closing it does not take
+the light down. Stop it from anywhere with `sig stop`. If you would rather
+supervise it yourself, `sig start --foreground` keeps it attached and Ctrl+C
+shuts it down cleanly.
 
 Drag the light anywhere; it remembers where you put it. Hover for a small
 toolbar: switch between the tall housing and a slim bar, collapse to a single
