@@ -175,6 +175,21 @@ test('installing from a checkout reports that it did', () => {
   }
 });
 
+// `connect` is the verb, but `install` shipped first and people will have it
+// written down. Both must keep working, or an upgrade breaks their notes.
+test('connect and install are the same command', async () => {
+  const CLI = path.join(__dirname, '..', 'src', 'cli.js');
+  const run = (args) =>
+    new Promise((resolve) => {
+      execFile(process.execPath, [CLI, ...args], {}, (err, stdout, stderr) =>
+        resolve((stdout || '') + (stderr || '')));
+    });
+  const a = await run(['connect']);
+  const b = await run(['install']);
+  assert.equal(a, b, 'the alias must behave identically');
+  assert.match(a, /usage: sig connect/, 'and the usage line teaches the new name');
+});
+
 test('installing hooks preserves existing config and is idempotent', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sig-inst-'));
   const cwd = process.cwd();

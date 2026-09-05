@@ -56,10 +56,10 @@ ${c.b('USAGE')}
   sig overlay                  overlay only (server must already run)
   sig stop                     shut everything down
 
-  sig install claude           wire into Claude Code hooks   ${c.dim('(exact)')}
-  sig install codex            wire into Codex notify        ${c.dim('(red + green)')}
-  sig install generic          print snippets for any other tool
-  sig uninstall claude|codex   remove those again
+  sig connect claude           wire into Claude Code hooks   ${c.dim('(exact)')}
+  sig connect codex            wire into Codex notify        ${c.dim('(red + green)')}
+  sig connect generic          print snippets for any other tool
+  sig disconnect claude|codex  remove those again
 
   sig wrap -- <command>        run any agent in a watched terminal
                                 ${c.dim('e.g. sig wrap -- gemini')}
@@ -317,7 +317,7 @@ function cmdInstall(positional, flags) {
       console.log(c.dim('  cannot be renamed or deleted while an agent is running, and other apps'));
       console.log(c.dim('  touching it report "file in use". The hooks also break if it ever moves.'));
       console.log(c.dim('  For everyday use, install once and wire up from there:'));
-      console.log(c.dim('    npm install -g signalhead && sig install claude'));
+      console.log(c.dim('    npm install -g signalhead && sig connect claude'));
     }
     return;
   }
@@ -334,7 +334,7 @@ function cmdInstall(positional, flags) {
     console.log(install.genericSnippet(flags.agent || 'my-agent'));
     return;
   }
-  console.error('usage: sig install <claude|codex|generic>');
+  console.error('usage: sig connect <claude|codex|generic>');
   process.exit(1);
 }
 
@@ -351,7 +351,7 @@ function cmdUninstall(positional, flags) {
     console.log(`removed traffic-light notify from ${r.file}`);
     return;
   }
-  console.error('usage: sig uninstall <claude|codex>');
+  console.error('usage: sig disconnect <claude|codex>');
   process.exit(1);
 }
 
@@ -376,7 +376,11 @@ async function main() {
                          .spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'setup.js')], { stdio: 'inherit' });
     case 'fuel':       return cmdFuel(positional, flags);
     case 'demo':       return cmdDemo();
+    // `connect` is the verb; `install` is kept working because it shipped and
+    // people will have it written down.
+    case 'connect':
     case 'install':    return cmdInstall(positional, flags);
+    case 'disconnect':
     case 'uninstall':  return cmdUninstall(positional, flags);
     case 'watch': {
       const target = (positional[0] || '').toLowerCase();

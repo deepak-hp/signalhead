@@ -61,7 +61,7 @@ node src/cli.js start
 
 ```bash
 sig start              # server + floating light
-sig install claude     # wire into Claude Code — takes effect immediately
+sig connect claude     # wire into Claude Code — takes effect immediately
 ```
 
 Drag the light anywhere; it remembers where you put it. Hover for a small
@@ -86,7 +86,7 @@ Three tiers, best first.
 ### 1. The agent's own hooks — exact
 
 ```bash
-sig install claude     # ~/.claude/settings.json   (--scope project for one repo)
+sig connect claude     # ~/.claude/settings.json   (--scope project for one repo)
 sig watch codex        # tails Codex's session log; no config touched
 ```
 
@@ -105,16 +105,16 @@ three lamps, including the "working" signal that `notify` structurally cannot
 give you. It covers the editor extension as well as the CLI. Leave
 `sig watch codex` running next to `sig start`.
 
-Both installers back up the file they touch, and `sig uninstall claude|codex`
+Both back up the file they touch, and `sig disconnect claude|codex`
 puts things back exactly as they were.
 
-**Install once, globally, and wire up from there.** `sig install claude` writes
+**Install once, globally, and wire up from there.** `sig connect claude` writes
 an absolute path into `~/.claude/settings.json`, and hooks fire on every tool
 call. Point them at a git checkout and that folder is held open for as long as
 any agent is running — on Windows it then cannot be renamed or deleted, and
 other applications touching it report *"the file is in use by another
 application"*. The hooks also break silently the day the checkout moves. A
-global install lives somewhere stable, outside every project. `sig install` and
+global install lives somewhere stable, outside every project. `sig connect` and
 `sig doctor` both warn if you have wired them up from a checkout.
 
 ### 2. The wrapper — works with anything
@@ -150,7 +150,7 @@ or over plain HTTP, from any language:
 curl -s "http://127.0.0.1:4747/set/busy?agent=my-bot&session=$$&detail=thinking"
 ```
 
-`sig install generic --agent my-bot` prints these ready to paste.
+`sig connect generic --agent my-bot` prints these ready to paste.
 
 ---
 

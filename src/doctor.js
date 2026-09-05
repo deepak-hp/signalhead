@@ -87,7 +87,7 @@ async function run() {
   for (const scope of ['user', 'project']) {
     const file = install.claudeSettingsPath(scope);
     if (!exists(file)) {
-      if (scope === 'user') check('Claude Code hooks (user)', 'warn', `no ${file}`, 'sig install claude');
+      if (scope === 'user') check('Claude Code hooks (user)', 'warn', `no ${file}`, 'sig connect claude');
       continue;
     }
     let settings = {};
@@ -103,14 +103,14 @@ async function run() {
       .filter((h) => /hooks[\\/]claude\.js/.test(h.cmd));
 
     if (!ours.length) {
-      if (scope === 'user') check('Claude Code hooks (user)', 'warn', 'not installed', 'sig install claude');
+      if (scope === 'user') check('Claude Code hooks (user)', 'warn', 'not installed', 'sig connect claude');
       continue;
     }
 
     const events = [...new Set(ours.map((h) => h.evt))];
     check(`Claude Code hooks (${scope})`, events.length >= 8 ? 'pass' : 'warn',
       `${events.length} events in ${file}`,
-      events.length >= 8 ? null : 'sig install claude   (reinstall to add the missing events)');
+      events.length >= 8 ? null : 'sig connect claude   (re-run to add the missing events)');
 
     // The single most common cross-machine failure: the hook points at a node
     // binary or script path that does not exist on this machine (moved checkout,
@@ -119,12 +119,12 @@ async function run() {
     const quoted = cmd.match(/"([^"]+)"/g) || [];
     const [bin, script] = quoted.map((q) => q.slice(1, -1));
     check('  hook interpreter exists', exists(bin) ? 'pass' : 'fail', bin || '(unparsed)',
-      'sig install claude   (rewrites the paths for this machine)');
+      'sig connect claude   (rewrites the paths for this machine)');
     check('  hook script exists', exists(script) ? 'pass' : 'fail', script || '(unparsed)',
-      'sig install claude   (rewrites the paths for this machine)');
+      'sig connect claude   (rewrites the paths for this machine)');
     if (script && !script.startsWith(ROOT.replace(/\\/g, '/'))) {
       check('  hook points at this checkout', 'warn',
-        `points outside ${ROOT}`, 'sig install claude   (if you moved the project)');
+        `points outside ${ROOT}`, 'sig connect claude   (if you moved the project)');
     }
 
     // Hooks fire on every tool call. If they run a script from a git checkout,
@@ -134,7 +134,7 @@ async function run() {
     if (script && install.isCheckout() && script.startsWith(ROOT.replace(/\\/g, '/'))) {
       check('  hooks run from a working checkout', 'warn',
         `${ROOT} is held open while any agent runs`,
-        'npm install -g signalhead && sig install claude');
+        'npm install -g signalhead && sig connect claude');
     }
   }
 
