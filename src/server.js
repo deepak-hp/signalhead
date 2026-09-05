@@ -46,7 +46,9 @@ function start({ port = config.port(), ttlMs, idleTtlMs, quietAfterMs, unusedTtl
     if (req.method === 'OPTIONS') return res.writeHead(204).end();
 
     try {
-      if (p === '/health') return send(res, 200, { ok: true, pid: process.pid, port });
+      // `clients` is how many overlays are listening. A running server with
+      // nobody watching is not a running traffic light.
+      if (p === '/health') return send(res, 200, { ok: true, pid: process.pid, port, clients: clients.size });
 
       if (p === '/state' && req.method === 'GET') return send(res, 200, store.snapshot());
 

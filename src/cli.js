@@ -140,10 +140,18 @@ async function cmdStartDetached(flags) {
   const port = Number(flags.port) || config.port();
 
   const running = await client.health();
-  if (running) {
+  if (running && (running.clients > 0 || flags['no-overlay'])) {
     console.log(`${c.dim('already running on port ' + running.port)}`);
     console.log(c.dim('  stop it with:  sig stop'));
     return;
+  }
+
+  // A server with no overlay attached is not a traffic light — you closed the
+  // window and the state kept flowing to nobody. Saying "already running" and
+  // doing nothing leaves you staring at an empty desktop.
+  if (running) {
+    console.log(c.dim('server already running — opening the window'));
+    return cmdOverlay(flags);
   }
 
   const args = [path.join(ROOT, 'src', 'cli.js'), 'start', '--foreground', '--port', String(port)];

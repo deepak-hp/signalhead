@@ -50,6 +50,15 @@ test('server reports health and starts empty', async () => {
   assert.equal((await api('/state')).overall, 'offline');
 });
 
+// A running server with nobody watching is not a running traffic light. `sig
+// start` used to see the server, say "already running", and leave you staring
+// at a desktop with no window on it.
+test('health says how many overlays are actually watching', async () => {
+  const h = await api('/health');
+  assert.equal(typeof h.clients, 'number', 'health must report watcher count');
+  assert.equal(h.clients, 0, 'no overlay is attached in tests');
+});
+
 test('a full Claude turn drives the lamp end to end', async () => {
   const sid = 'turn-1';
   await fire({ session_id: sid, hook_event_name: 'UserPromptSubmit', cwd: '/tmp/x' });
